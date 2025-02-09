@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@+id/fragment_principal">
+
+    <fragment
+        android:id="@+id/fragment_principal"
+        android:name="org.patarasprod.localisationdegroupe.FragmentPrincipal"
+        android:label="Localisation de groupe"
+        tools:layout="@layout/fragment_principal">
+        <action
+            android:id="@+id/action_fragment_principal_to_fragment_parametres"
+            app:destination="@id/fragment_parametres" />
+    </fragment>
+
+    <fragment
+    android:id="@+id/fragment_parametres"
+    android:name="org.patarasprod.localisationdegroupe.Fragment_parametres"
+    android:label="Paramètres"
+    tools:layout="@layout/fragment_parametres">
+        <action
+            android:id="@+id/action_fragment_parametres_to_fragment_principal"
+            app:destination="@id/fragment_principal" />
+    </fragment>
+
+</navigation>

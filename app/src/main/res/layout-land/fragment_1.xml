@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraintLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    tools:context=".FragmentPrincipal">
+
+    <!--    tools:showIn="@layout/fragment_principal"-->
+
+    <ImageButton
+        android:id="@+id/posAngleVersPressePapier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:src="?attr/actionModePasteDrawable"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/label_nom_angle_minutes_secondes" />
+
+    <ImageButton
+        android:id="@+id/posVersPressePapier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:src="?attr/actionModePasteDrawable"
+        app:layout_constraintEnd_toStartOf="@+id/guideline"
+        app:layout_constraintTop_toTopOf="@+id/label_nom_ma_position" />
+
+    <TextView
+        android:id="@+id/section_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/constraintLayout" />
+
+    <TextView
+        android:id="@+id/label_ma_position"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Inconnue"
+        android:textSize="42sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/label_nom_ma_position" />
+
+    <TextView
+        android:id="@+id/label_nom_ma_position"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="28dp"
+        android:text="@string/label_nom_ma_position"
+        android:textSize="34sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/label_nom_altitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/texte_label_nom_altitude"
+        android:textSize="24sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/label_ma_position" />
+
+    <TextView
+        android:id="@+id/label_altitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Inconnue"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="@+id/label_nom_altitude"
+        app:layout_constraintStart_toEndOf="@+id/label_nom_altitude"
+        app:layout_constraintTop_toTopOf="@+id/label_nom_altitude" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintGuide_begin="376dp"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/label_nom_angle_minutes_secondes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/label_nom_angle_minutes_secondes"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="@+id/guideline"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/label_nom_latitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        android:text="@string/label_nom_latitude"
+        android:textSize="20sp"
+        app:layout_constraintStart_toStartOf="@+id/label_nom_angle_minutes_secondes"
+        app:layout_constraintTop_toBottomOf="@+id/label_nom_angle_minutes_secondes" />
+
+    <TextView
+        android:id="@+id/label_latitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Inconnue"
+        android:textSize="28sp"
+        app:layout_constraintBottom_toBottomOf="@+id/label_nom_latitude"
+        app:layout_constraintStart_toEndOf="@+id/label_nom_latitude"
+        app:layout_constraintTop_toTopOf="@+id/label_nom_latitude" />
+
+    <TextView
+        android:id="@+id/label_nom_longitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        android:text="@string/label_nom_longitude"
+        android:textSize="20sp"
+        app:layout_constraintStart_toStartOf="@+id/label_nom_angle_minutes_secondes"
+        app:layout_constraintTop_toBottomOf="@+id/label_nom_latitude" />
+
+    <TextView
+        android:id="@+id/label_longitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Inconnue"
+        android:textSize="28sp"
+        app:layout_constraintBottom_toBottomOf="@+id/label_nom_longitude"
+        app:layout_constraintStart_toEndOf="@+id/label_nom_longitude"
+        app:layout_constraintTop_toTopOf="@+id/label_nom_longitude" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

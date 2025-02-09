@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">Localisation de groupe</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+
+
+    <string name="tab_text_1">Position</string>
+    <string name="tab_text_2">Carte</string>
+    <string name="tab_text_3">Infos</string>
+    <string name="label_nom_ma_position">Ma position :</string>
+    <string name="texte_label_nom_altitude">Altitude :</string>
+    <string name="label_nom_angle_minutes_secondes">En angle/minutes/secondes</string>
+    <string name="label_nom_latitude">Latitude :</string>
+    <string name="label_nom_longitude">Longitude :</string>
+    <string name="item_menu_actualiser">Rafraîchir</string>
+    <string name="item_menu_autorisations">Redemander autorisations</string>
+    <string name="item_menu_reinitialiser_positions">Réinitialiser les positions</string>
+    <string name="item_menu_parametres">Paramètres</string>
+    <string name="item_menu_a_propos">A propos</string>
+    <string name="item_menu_quitter">Quitter</string>
+    <string name="label_nom">Nom :</string>
+    <string name="label_diffuser_ma_position">Diffuser ma position</string>
+    <string name="switch_diffuser_ma_position">Commutateur \"Diffuser ma position\"</string>
+    <string name="label_intervalle_mesure">Intervalle entre mesures de position (s) :</string>
+    <string name="label_intervalle_maj">Intervalle m.a.j. position (s) :</string>
+    <string name="indice_nom_a_diffuser">Nom à diffuser</string>
+    <string name="intervalle_entre_deux_mises_jour_de_l_affichage">Intervalle entre deux mises à jour de l\'affichage</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="texte_tab1">Position</string>
+    <string name="texte_tab2">Carte</string>
+    <string name="texte_tab3">Infos</string>
+    <string name="texte_tab4">Params</string>
+    <string name="description_intervalle__mesures">Intervalle de temps entre deux mesures (en secondes)</string>
+    <string name="decription_switch_diffuser_ma_position">Diffuser ou non ma position (switch)</string>
+    <string name="description_label_nom">Nom</string>
+    <string name="label_nom_serveur">Adresse (nom) du serveur :</string>
+    <string name="label_port_serveur">Port du serveur :</string>
+    <string name="centrer_sur_moi">Centrer sur moi</string>
+    <string name="information">Information</string>
+</resources>
