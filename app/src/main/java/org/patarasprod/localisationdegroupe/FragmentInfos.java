@@ -1,6 +1,7 @@
 package org.patarasprod.localisationdegroupe;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import org.patarasprod.localisationdegroupe.databinding.Fragment3Binding;
+import org.patarasprod.localisationdegroupe.databinding.FragmentInfosBinding;
 import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
 
 import java.util.ArrayList;
@@ -18,17 +19,19 @@ import java.util.Objects;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class Fragment_3 extends Fragment {
+public class FragmentInfos extends Fragment {
 
-    private Fragment3Binding binding;
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+    private FragmentInfosBinding binding;
     Config cfg;
     ArrayList<Position> listePositions = null;
     RecyclerViewAdapterListeUtilisateurs adapter = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        if (Config.DEBUG_LEVEL > 3) Log.v("infos", "Création du fragment infos");
         super.onCreate(savedInstanceState);
-        System.out.println("Création Fragment 3");
     }
 
     @Override
@@ -36,11 +39,13 @@ public class Fragment_3 extends Fragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
 
-        binding = Fragment3Binding.inflate(inflater, container, false);
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        // On sauvegarde la référence au fragment crée
+        cfg.fragment_infos = this;
+
+        binding = FragmentInfosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        this.cfg = ((MainActivity) requireActivity()).recupere_configuration();
-        cfg.fragment_3 = this;
         cfg.texteInfos = binding.Infos;
         cfg.recyclerViewPositions = binding.listePositions;
         configureRecyclerView();

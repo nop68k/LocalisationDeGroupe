@@ -16,26 +16,28 @@ import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.CustomZoomButtonsController;
-import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.ScaleBarOverlay;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-import org.patarasprod.localisationdegroupe.databinding.Fragment2Binding;
+import org.patarasprod.localisationdegroupe.databinding.FragmentCarteBinding;
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class Fragment_2 extends Fragment {
+public class FragmentCarte extends Fragment {
 
-    private Fragment2Binding binding;
+    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
+    private FragmentCarteBinding binding;
     Config cfg;
     RotationGestureOverlay mRotationGestureOverlay;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment Carte", "Création du fragment Carte");
         super.onCreate(savedInstanceState);
     }
 
@@ -44,12 +46,15 @@ public class Fragment_2 extends Fragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
 
-        binding = Fragment2Binding.inflate(inflater, container, false);
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        // On sauvegarde la référence au fragment crée
+        cfg.fragment_carte = this;
+
+        binding = FragmentCarteBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
         // Mise en place de la carte
-        cfg = ((MainActivity) requireActivity()).recupere_configuration();
-        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment 2","onCreateView Fragment2 cfg = " + cfg);
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Fragment Carte","onCreateView FragmentCarte cfg = " + cfg);
         cfg.map = binding.map;
 
         // Nécessaire pour que la mapView ne soit pas détachée de la fenêtre dès qu'on quitte l'onglet
@@ -106,13 +111,13 @@ public class Fragment_2 extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment 2","onResume Fragment2 cfg = " + cfg);
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Fragment Carte","onResume FragmentCarte cfg = " + cfg);
         //this will refresh the osmdroid configuration on resuming.
         //if you make changes to the configuration, use
         //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         //Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
         if (cfg.map != null) {
-            if (Config.DEBUG_LEVEL > 3) Log.v("Fragment 2","cfg.map = " + cfg.map + "  - Appel de map.onResume()");
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Fragment Carte","cfg.map = " + cfg.map + "  - Appel de map.onResume()");
             cfg.map.onResume(); //needed for compass, my location overlays, v6.0.0 and up
         }
     }
@@ -120,13 +125,13 @@ public class Fragment_2 extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment 2","onPause Fragment2 cfg = " + cfg);
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Fragment Carte","onPause FragmentCarte cfg = " + cfg);
         //this will refresh the osmdroid configuration on resuming.
         //if you make changes to the configuration, use
         //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         //Configuration.getInstance().save(this, prefs);
         if (cfg.map != null) {
-            if (Config.DEBUG_LEVEL > 3) Log.v("Fragment 2","cfg.map = " + cfg.map + "  - Appel de map.onPause()");
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Fragment Carte","cfg.map = " + cfg.map + "  - Appel de map.onPause()");
             cfg.centreCarte = (GeoPoint) cfg.map.getMapCenter();
             cfg.niveauZoomCarte = cfg.map.getZoomLevelDouble();
             cfg.orientationCarte = cfg.map.getMapOrientation();

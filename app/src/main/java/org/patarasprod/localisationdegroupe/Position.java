@@ -24,6 +24,7 @@ public class Position {
     static Config cfg = null;;
 
     // Constantes
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     final String FORMAT_AFFICHAGE_POSITION = "%.7f";
     final String SEPARATEUR_LATITUDE_LONGITUDE = ";";
     final String SEPARATEUR_CHAMPS = "||";
@@ -85,7 +86,7 @@ public class Position {
             }
         }
         catch (Exception e) {
-                Log.v("MaJ_Position", "Erreur dans le décodage de la chaîne : " + chaine_originale);
+                if (DEBUG_CLASSE) Log.v("MaJ_Position", "Erreur dans le décodage de la chaîne : " + chaine_originale);
         }
         // Il y a eu echec d'au moins une des composantes : on crée une position invalide
         this.nom = NOM_INVALIDE;
@@ -102,7 +103,7 @@ public class Position {
             this.longitude = objetJSON.getDouble(CHAMP_LONGITUDE);
             this.dateMesure = Instant.parse((String) objetJSON.get(CHAMP_DATE_MESURE));
         } catch (JSONException e) {
-            Log.v("Position", "ERREUR dans le constructeur à partir d'un objet JSON :"
+            if (DEBUG_CLASSE) Log.v("Position", "ERREUR dans le constructeur à partir d'un objet JSON :"
                     + objetJSON);
         }
 
@@ -121,6 +122,11 @@ public class Position {
         this.dateMesure = nouvellePosition.dateMesure;
     }
 
+    /** Met à jour uniquement le nom de la position **/
+    public void majPosition(String nouveauNom) {
+        this.nom = nouveauNom;
+    }
+
     /** Renvoie true si la position donnée est valide (vérifie la présence des champs et
      *  leurs valeurs (dans les bornes acceptables)
      **/
@@ -131,9 +137,11 @@ public class Position {
         if (this.longitude < -180 || this.longitude > 180) return false;
         if (this.dateMesure == null || this.dateMesure.isBefore(Instant.EPOCH) ||
                 this.dateMesure.isAfter(Instant.now())) {
-            Log.v("Position", "Date d'une position invalide : " + this);
-            Log.v("Position", "isBefore(Instant.EPOCH) : " + this.dateMesure.isBefore(Instant.EPOCH));
-            Log.v("Position", "this.dateMesure.isAfter(Instant.now()) : " + this.dateMesure.isAfter(Instant.now()));
+            if (DEBUG_CLASSE) {
+                Log.v("Position", "Date d'une position invalide : " + this);
+                Log.v("Position", "isBefore(Instant.EPOCH) : " + this.dateMesure.isBefore(Instant.EPOCH));
+                Log.v("Position", "this.dateMesure.isAfter(Instant.now()) : " + this.dateMesure.isAfter(Instant.now()));
+            }
             return false;
         }
         return true;
@@ -147,8 +155,8 @@ public class Position {
             objetPosition.put(CHAMP_LONGITUDE, this.longitude);
             objetPosition.put(CHAMP_DATE_MESURE, this.dateMesure.toString());
         } catch (JSONException e) {
-            Log.v("Position", "ERREUR dans la création d'un objet JSON pour la position :"
-                    + this);
+            if (DEBUG_CLASSE) Log.v("Position",
+                    "ERREUR dans la création d'un objet JSON pour la position :" + this);
         }
         return objetPosition;
     }
@@ -209,7 +217,7 @@ public class Position {
     @Override
     public String toString() {
         Locale locale = new Locale("en", "UK");  // Pour avoir le point en séparateur décimal
-        return nom
+        return this.nom
          + SEPARATEUR_CHAMPS
          + String.format(locale, FORMAT_AFFICHAGE_POSITION, this.latitude)
          + SEPARATEUR_LATITUDE_LONGITUDE

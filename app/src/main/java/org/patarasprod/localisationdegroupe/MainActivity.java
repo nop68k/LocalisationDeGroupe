@@ -11,7 +11,6 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.ui.AppBarConfiguration;
-import androidx.recyclerview.widget.RecyclerView;
 
 import org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding;
 import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
@@ -63,39 +62,26 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    /** Fonction de gestion des clics sur les boutons */
-    public void onButtonClicked(final View v) {
-        if (Config.DEBUG_LEVEL > 2) Log.v("mainActivity","***********Bouton appuyé : " + v.getId());
-/*
-        switch (v.getId()) {
-            case R.id.button_tab1:
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).popBackStack();
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).navigate(R.id.fragment_1);
-                break;
-            case R.id.button_tab2:
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).popBackStack();
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).navigate(R.id.fragment_2);
-                break;
-            case R.id.button_tab3:
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).popBackStack();
-                Navigation.findNavController(this, R.id.nav_host_fragment_content_main).navigate(R.id.fragment_3);
-                break;
-            default:
-                if (Config.DEBUG_LEVEL > 2) Log.v("mainActivity","Bouton inconnu : " + v.getId());
-        }
-
- */
+    /** Fonction de mise à jour de l'UI
+     * Toutes les mise à jour de l'UI doivent absolument se faire sur le thread de l'UI (sinon ils
+     * déclenchent une exception et ne sont pas pris en compte). Cette méthode permet de créer un
+     * runnable qui s'exécutera sur le thread UI et fera la mise à jour voulue. Fonctionne quel que
+     * soit le thread appelant (même si c'est le thread UI).
+    **/
+    public void majUI(int elementsAMettreAJour) {
+        return;
     }
+
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch (item.getItemId()) {
             case R.id.item_menu_actualiser:
-                if (cfg.fragment_3 != null) {
-                    cfg.fragment_3.majTexteInfos();
+                if (cfg.fragment_infos != null) {
+                    cfg.fragment_infos.majTexteInfos();
                     if (cfg.recyclerViewPositions != null)
                         ( (RecyclerViewAdapterListeUtilisateurs) Objects.requireNonNull(cfg.recyclerViewPositions.getAdapter())).majListeUtilisateurs();
-                    Objects.requireNonNull(cfg.fragment_3.getView()).invalidate();   // Pour forcer la mise à jour de l'affichage
+                    Objects.requireNonNull(cfg.fragment_infos.getView()).invalidate();   // Pour forcer la mise à jour de l'affichage
                     //cfg.fragment_3.getView().requestLayout();
                     if (cfg.map != null) cfg.map.invalidate();
                     if (cfg.com != null) cfg.com.majIndicateurConnexion();
@@ -144,14 +130,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onResume() {
-        super.onResume();
         if (Config.DEBUG_LEVEL > 2) Log.v("mainActivity","Méthode onResume appellée. cfg = "+ cfg);
+        super.onResume();
     }
 
     @Override
     public void onPause() {
-        super.onPause();
         if (Config.DEBUG_LEVEL > 2) Log.v("mainActivity","Méthode onPause appellée. cfg = "+ cfg);
+        super.onPause();
     }
 
     @Override
@@ -173,8 +159,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
+        if (Config.DEBUG_LEVEL > 2) Log.v("mainActivity","Méthode onDetroy appellée. cfg = "+ cfg);
         cfg.sauvegardeToutesLesPreferences();
         cfg.gestionPositionsUtilisateurs.sauvegardePositions();
+        super.onDestroy();
     }
 }

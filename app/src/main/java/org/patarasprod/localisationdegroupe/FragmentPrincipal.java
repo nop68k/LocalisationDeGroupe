@@ -64,7 +64,7 @@ public class FragmentPrincipal extends NavHostFragment {
         tabLayout = binding.tabLayout2;    //findViewById(R.id.tabLayout);
 
         /* POUR DESACTIVER LE SWIPE IL FAUT UTILISER UN ViewPager2 (voir https://developer.android.com/reference/androidx/viewpager2/widget/ViewPager2#summary
-          et nottamment la méthode setUserInputEnabled pour désactiver le swipe
+          et notamment la méthode setUserInputEnabled pour désactiver le swipe
          */
 
         viewPager = (ViewPager2) binding.viewPager2; //findViewById(R.id.viewPager2);
@@ -85,9 +85,11 @@ public class FragmentPrincipal extends NavHostFragment {
             }
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
+                viewPager.setCurrentItem(tab.getPosition());
             }
         });
 
+        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment principal","Désactivation du swipe");
         viewPager.setUserInputEnabled(false);
 
         // Boputon flottant (Floating Action Button) pour centrer sur notre position
@@ -106,7 +108,7 @@ public class FragmentPrincipal extends NavHostFragment {
             }
         });
 
-        // Boputon flottant (Floating Action Button) d'information
+        // Bouton flottant (Floating Action Button) d'information
         binding.fabInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

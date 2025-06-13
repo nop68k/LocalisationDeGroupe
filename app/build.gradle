@@ -8,14 +8,14 @@ ext {
 
 android {
     namespace 'org.patarasprod.localisationdegroupe'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "org.patarasprod.localisationdegroupe"
         minSdk 26
-        targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        targetSdk 34
+        versionCode 3
+        versionName "0.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

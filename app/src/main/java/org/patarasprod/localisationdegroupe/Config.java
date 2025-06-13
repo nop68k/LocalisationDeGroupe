@@ -4,11 +4,9 @@ package org.patarasprod.localisationdegroupe;
 import androidx.fragment.app.FragmentManager;
 import androidx.navigation.NavController;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.ActionBar;
-import android.app.MediaRouteButton;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
@@ -25,14 +23,13 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
 
 public class Config {
 
     public static int DEBUG_LEVEL = 4; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 1.1\n(Février 2025)";
+            "Version 0.9\n(Juin 2025)";
     public static final String TEXTE_BOUTON_INFO = "Appui court -> centrer la carte sur la personne"+
             "\nAppui long -> appel programme externe";
 
@@ -66,9 +63,9 @@ public class Config {
     public Position maPosition;    //Position de l'utilisateur principal
     public GestionPositionsUtilisateurs gestionPositionsUtilisateurs;
 
-    public Fragment_1 fragment_1;
-    public Fragment_2 fragment_2;
-    public Fragment_3 fragment_3;
+    public FragmentPosition fragment_position;
+    public FragmentCarte fragment_carte;
+    public FragmentInfos fragment_infos;
     public Fragment_parametres fragment_parametres;
     public LocalisationGPS localisation;
     public MainActivity mainActivity = null;   // Référence vers la MainActivity (l'activité du programme)
@@ -104,6 +101,7 @@ public class Config {
 
     public String reponse = null ;  //réponse du serveur
     Thread threadCommunication = null;          // Pointeur vers le thread communication
+    Thread threadCommunication1Fois = null;     // Thread pour une communication unique
     public boolean communicationEnCours = false; // Le thread d'envoi vers le serveur est dans la boucle d'envoi
     public boolean diffuserMaPosition = true;
 

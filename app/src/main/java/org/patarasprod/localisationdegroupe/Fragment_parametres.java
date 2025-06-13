@@ -1,10 +1,20 @@
 package org.patarasprod.localisationdegroupe;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
+import android.content.Context;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -23,7 +33,7 @@ public class Fragment_parametres extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         cfg = ((MainActivity) requireActivity()).recupere_configuration();
-        if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("Fragment 3", "Création du fragment parametres");
+        if (Config.DEBUG_LEVEL > 3) Log.v("parametres", "Création du fragment parametres");
         super.onCreate(savedInstanceState);
     }
 
@@ -32,19 +42,40 @@ public class Fragment_parametres extends Fragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
 
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        // On sauvegarde la référence au fragment crée
+        cfg.fragment_parametres = this;
+
         binding = FragmentParametresBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
+
+        TextView.OnEditorActionListener traitementActions = new EditText.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE ||
+                        event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                    majParametres();
+                    return true;
+                }
+                return false;
+            }
+        };
 
         cfg = ((MainActivity) requireActivity()).recupere_configuration();
         binding.zoneSaisieNom.setText(cfg.nomUtilisateur);
         binding.zoneSaisieNom.setOnFocusChangeListener(this::onFocusChange);
+        binding.zoneSaisieNom.setOnEditorActionListener(traitementActions);
         binding.champIntervalleMesure.setText(String.valueOf(cfg.intervalleMesureSecondes));
         binding.champIntervalleMesure.setOnFocusChangeListener(this::onFocusChange);
+        binding.champIntervalleMesure.setOnEditorActionListener(traitementActions);
         binding.champIntervalleMaj.setText(String.valueOf(cfg.intervalleMajSecondes));
         binding.champIntervalleMaj.setOnFocusChangeListener(this::onFocusChange);
+        binding.champIntervalleMaj.setOnEditorActionListener(traitementActions);
         binding.champAdresseServeur.setText(String.valueOf(cfg.adresse_serveur));
+        binding.champAdresseServeur.setOnEditorActionListener(traitementActions);
         binding.champAdresseServeur.setOnFocusChangeListener(this::onFocusChange);
         binding.champPortServeur.setText(String.valueOf(cfg.port_serveur));
+        binding.champPortServeur.setOnEditorActionListener(traitementActions);
         binding.champPortServeur.setOnFocusChangeListener(this::onFocusChange);
 
         // Met le commutateur de diffusion de la position dans le bon état
@@ -67,27 +98,58 @@ public class Fragment_parametres extends Fragment {
         return root;
     }
 
-
-    public void onFocusChange(View v, boolean hasFocus) {
-        if (Config.DEBUG_LEVEL > 3) Log.v("Parametres", "******************perte de focus de " + v.getId());
+    /** Met à jour la configuration en fonction du contenu des champs de saisie et relance la
+     * communication si les paramètres de nom, adresse ou port ont changés
+     */
+    public void majParametres() {
         try {
+            String ancienNom = cfg.nomUtilisateur;
             // trim() permet de supprimer les espaces avant et après
             cfg.nomUtilisateur = String.valueOf(binding.zoneSaisieNom.getText()).trim();
+            cfg.maPosition.majPosition(cfg.nomUtilisateur); // Met à jour le nom d'utilisateur de la positions
             cfg.intervalleMesureSecondes = Long.parseLong(String.valueOf(binding.champIntervalleMesure.getText()));
             cfg.intervalleMajSecondes = Long.parseLong(String.valueOf(binding.champIntervalleMaj.getText()));
+
+            String ancienAdrServeur = cfg.adresse_serveur;
+            int ancienPortServeur = cfg.port_serveur;
             cfg.adresse_serveur = String.valueOf(binding.champAdresseServeur.getText()).trim();
             cfg.port_serveur = Integer.parseInt(String.valueOf(binding.champPortServeur.getText()));
+
+            // Si les paramètres du serveur ou le nom ont changé, on relance la communication avec les nouveau paramètres
+            if ((!ancienAdrServeur.equals(cfg.adresse_serveur) || ancienPortServeur != cfg.port_serveur
+                    || !ancienNom.equals(cfg.nomUtilisateur)) && cfg.com != null) {
+                if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
+                        "Les paramètres ont changés et nécessitent un redémarrage de la communication");
+                cfg.com.stoppeDiffusionPositionAuServeur();
+                cfg.com.demarreDiffusionPositionAuServeur();
+                if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
+                        "Tentative de maj de l'indicateur de connexion");
+                //cfg.com.majIndicateurConnexion();
+            }
+
             if (Config.DEBUG_LEVEL > 3) {
-                String valeurs = "Nom : " + cfg.nomUtilisateur +"\nIntervalle mesure : " +
-                        cfg.intervalleMesureSecondes + "s\nIntervalle maj : " + cfg.intervalleMajSecondes;
+                String valeurs = "Nom : " + cfg.nomUtilisateur +" \tIntervalle mesure : " +
+                        cfg.intervalleMesureSecondes + "s \tIntervalle maj : " + cfg.intervalleMajSecondes
+                        + " \tAdr serveur : " + cfg.adresse_serveur + " \tPort : " + cfg.port_serveur;
                 Log.v("Fragment parametres", valeurs);
-        }
+            }
 
         } catch (Exception e) {
 
         }
         if (Config.DEBUG_LEVEL > 2) Log.v("parametres", "Sauvegarde des paramètres");
         cfg.sauvegardeToutesLesPreferences();
+    }
+
+    public boolean onFocusChange(View v, boolean hasFocus) {
+        if (hasFocus) {
+            return false; // Si c'est un gain de focus, cela ne valide rien
+        } else {
+            if (Config.DEBUG_LEVEL > 3)
+                Log.v("Parametres", "******************perte de focus de " + v.getId());
+            majParametres();
+            return true;
+        }
     }
 
     @Override

@@ -1,37 +1,33 @@
 package org.patarasprod.localisationdegroupe;
 
-import static android.content.Context.CLIPBOARD_SERVICE;
-import static androidx.core.content.ContextCompat.getSystemService;
-
-import android.content.ClipboardManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
-
-import org.patarasprod.localisationdegroupe.databinding.Fragment1Binding;
+import org.patarasprod.localisationdegroupe.databinding.FragmentPositionBinding;
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class Fragment_1 extends NavHostFragment {
+public class FragmentPosition extends NavHostFragment {
 
-    private Fragment1Binding binding;
+    private FragmentPositionBinding binding;
     Config cfg;
     ImageButton positionVersPressePapier;
     ImageButton positionAngleVersPressePapier;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        if (Config.DEBUG_LEVEL > 3) Log.v("Fragment Position", "Création du fragment Position");
         super.onCreate(savedInstanceState);
     }
 
@@ -40,11 +36,23 @@ public class Fragment_1 extends NavHostFragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
 
-
-        binding = Fragment1Binding.inflate(inflater, container, false);
-        View root = binding.getRoot();
         cfg = ((MainActivity) requireActivity()).recupere_configuration();
+        // On sauvegarde la référence au fragment crée
+        cfg.fragment_position = this;
+
+        binding = FragmentPositionBinding.inflate(inflater, container, false);
+        View root = binding.getRoot();
+
         cfg.textViewLocalisation = binding.labelMaPosition;
+        cfg.textViewLocalisation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (cfg.com != null) {
+                    Log.v("Fragment Position", "Envoi unique de la position");
+                    cfg.com.communique1FoisAvecServeur();
+                }
+            }
+        });
         cfg.textViewAltitude = binding.labelAltitude;
         cfg.textViewLatitude = binding.labelLatitude;
         cfg.textViewLongitude = binding.labelLongitude;
@@ -74,8 +82,8 @@ public class Fragment_1 extends NavHostFragment {
         });
 
 
-        if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("Fragment 1", "Création du fragment 1");
-        cfg.localisation.getLocalisation();
+        if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("Fragment Position", "Création du fragment Position");
+        //cfg.localisation.getLocalisation();
 
         return root;
     }

@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class GestionPositionsUtilisateurs {
+
+    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
     public Map positions = new HashMap();   // Positions des utilisateurs
 
     final String SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$*$";
@@ -62,7 +64,7 @@ public class GestionPositionsUtilisateurs {
     private void ajouteOuMetAJourPosition(String chainePosition) {
         Position position = new Position(chainePosition);
         if (position.nom.equals(Position.NOM_INVALIDE)) {
-            Log.v("Cartographie", "Position invalide détectée dans la chaîne " + chainePosition);
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Cartographie", "Position invalide détectée dans la chaîne " + chainePosition);
         }
         else {
             if (positions.containsKey(position.nom)) {
@@ -78,7 +80,7 @@ public class GestionPositionsUtilisateurs {
      * représentant les noms des utilisateurs
      */
     public void majPositions(String reponseServeur) {
-        if (Config.DEBUG_LEVEL > 3) Log.v("Cartographie", "appel de la mise à jour position");
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Cartographie", "appel de la mise à jour position");
         int separateur = reponseServeur.indexOf(SEPARATEUR_ELEMENTS_REPONSE_SERVEUR);
         while (separateur >= 0) {
             // On mémorise la ligne actuelle
@@ -92,13 +94,11 @@ public class GestionPositionsUtilisateurs {
         ajouteOuMetAJourPosition(reponseServeur);
         // Toutes les positions ont été mises à jour
         cfg.nbPositions = positions.size();
-        if (Config.DEBUG_LEVEL > 3) Log.v("Cartographie", "Parsing de la réponse effectué, " +
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Cartographie", "Parsing de la réponse effectué, " +
                 cfg.nbPositions + " positions trouvées");
-        if (cfg.map != null) {
-            if (Config.DEBUG_LEVEL > 3) Log.v("Cartographie", "MàJ des positions sur la carte");
+        if (cfg.map != null) {   // Si la carte a été crée, on la met à jour
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Cartographie", "MàJ des positions sur la carte");
             majPositionsSurLaCarte();
-        } else {
-            Log.v("Cartographie", "ERREUR : map est à null lors de la maj position !");
         }
     }
 
@@ -112,14 +112,16 @@ public class GestionPositionsUtilisateurs {
             return ;
         }
         // On commence par retirer tous les marqueurs
-        if (Config.DEBUG_LEVEL > 4)  Log.v("GestionPositionUtilisateurs","### Mise à jour marqueurs avec map qui vaut :" + cfg.map);
+        if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
+                "### Mise à jour marqueurs avec map qui vaut :" + cfg.map);
         Iterator<Overlay> iter = cfg.map.getOverlays().iterator();
         Overlay item;
         while (iter.hasNext()) {
             item = iter.next();
             if (item.getClass().equals(MarkerWithLabel.class)) cfg.map.getOverlays().remove(item);
         }
-        if (Config.DEBUG_LEVEL > 4)  Log.v("GestionPositionUtilisateurs","#### Fin suppression anciens marqueurs avec map qui vaut :" + cfg.map);
+        if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
+                "#### Fin suppression anciens marqueurs avec map qui vaut :" + cfg.map);
 
         // Puis on ajoute des noyveaux marqueurs correspondant aux positions :
         Iterator<String> iter2 = positions.keySet().iterator();
@@ -127,12 +129,14 @@ public class GestionPositionsUtilisateurs {
         MarkerWithLabel marqueur;
         Position position;
         while (iter2.hasNext()) {
-            if (Config.DEBUG_LEVEL > 4)  Log.v("GestionPositionUtilisateurs","#### Mise en place nième marqueur avec map qui vaut :" + cfg.map);
+            if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
+                    "#### Mise en place nième marqueur avec map qui vaut :" + cfg.map);
             nomUtilisateur = iter2.next();
             position = (Position) this.positions.get(nomUtilisateur);
             if (estPositionValide(position) && !nomUtilisateur.equals(cfg.nomUtilisateur)) {
                 marqueur = new MarkerWithLabel(cfg.map, nomUtilisateur);
-                if (Config.DEBUG_LEVEL > 4)  Log.v("GestionPositionUtilisateurs","#### Juste APRES instruction qui fait planter avec map qui vaut :" + cfg.map);
+                if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
+                        "#### Juste APRES instruction qui fait planter avec map qui vaut :" + cfg.map);
                 marqueur.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                 marqueur.setIcon(ResourcesCompat.getDrawable(
                         cfg.mainActivity.getBaseContext().getResources(),
@@ -174,7 +178,8 @@ public class GestionPositionsUtilisateurs {
         while (iter.hasNext()) {
             nomUtilisateur = iter.next();
             liste[i] = Objects.requireNonNull(this.positions.get(nomUtilisateur)).toString();
-            if (Config.DEBUG_LEVEL > 3)  Log.v("GestionPositionUtilisateurs","Elément n°" + i + " (" + nomUtilisateur + ") : " + liste[i]);
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                Log.v("GestionPositionUtilisateurs","Elément n°" + i + " (" + nomUtilisateur + ") : " + liste[i]);
             i++;
         }
         return liste;
@@ -206,7 +211,8 @@ public class GestionPositionsUtilisateurs {
             out.write(positionsASauvegarder.toString().getBytes());
             out.flush();
             out.close();
-            if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("GestionPositions", "Sauvegarde des positions dans le fichier effectuée");
+            if (cfg != null && Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                Log.v("GestionPositions", "Sauvegarde des positions dans le fichier effectuée");
         } catch (FileNotFoundException e) {
             Log.v("GestionPositions", "ERREUR : le fichier de sauvegarde est introuvable");
         } catch (IOException e) {
@@ -233,7 +239,7 @@ public class GestionPositionsUtilisateurs {
                     JSONArray contenuJSON = new JSONArray(contenuFichier.toString());
                     fusionnePositions(contenuJSON);
                 }
-                if (cfg != null && Config.DEBUG_LEVEL > 3)
+                if (cfg != null && Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                     Log.v("GestionPositions", "Sauvegarde des positions dans le fichier effectuée");
             } catch (FileNotFoundException e) {
                 Log.v("GestionPositions", "ERREUR : le fichier de sauvegarde est introuvable");

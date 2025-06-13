@@ -18,11 +18,14 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
 
 
 import com.google.android.gms.location.Priority;
 
+import java.util.List;
 import java.util.Locale;
 
 
@@ -91,7 +94,7 @@ public final class LocalisationGPS implements LocationListener {
                 GPSDisponible = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                 if (Config.DEBUG_LEVEL > 1) Log.v("LocalisationGPS", "GPS disponible :" + GPSDisponible);
 
-                getLocalisation();
+                metEnPlaceActualisationPosition();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -148,6 +151,42 @@ public final class LocalisationGPS implements LocationListener {
                 latitude = localisation.getLatitude();
                 longitude = localisation.getLongitude();
             }
+            if (cfg.maPosition != null) {
+                cfg.maPosition.majPosition(latitude, longitude);
+            } else cfg.maPosition = new Position(cfg.nomUtilisateur, latitude, longitude);
+            actualise_position();
+            return localisation;
+        }
+        return null;
+    }
+
+    /** Fonction pour mettre en place l'actualisation régulière de la position
+     * Basé sur le LocationManager et la méthode requestLocationUpdates
+     */
+    @RequiresPermission(allOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
+    public void metEnPlaceActualisationPosition() {
+        if (demandeAutorisationsLocalisation()) {
+            locationManager = (LocationManager) mContext
+                    .getSystemService(Context.LOCATION_SERVICE);
+            NetworkDisponible = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            GPSDisponible = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            if (!GPSDisponible && !NetworkDisponible) {
+                // no network provider is enabled
+                if (Config.DEBUG_LEVEL > 0) Log.v("LocalisationGPS", "Aucun accès à une méthode de localisation");
+                return ;
+            } else if (GPSDisponible) {
+                localisation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            } else {
+                localisation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+            if (localisation != null) {
+                latitude = localisation.getLatitude();
+                longitude = localisation.getLongitude();
+                if (cfg.maPosition != null) {
+                    cfg.maPosition.majPosition(latitude, longitude);
+                } else cfg.maPosition = new Position(cfg.nomUtilisateur, latitude, longitude);
+                actualise_position();
+            }
             // Demande l'actualisation si disponible
             if (NetworkDisponible) locationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
@@ -156,13 +195,7 @@ public final class LocalisationGPS implements LocationListener {
             if (GPSDisponible) locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                     cfg.intervalleMesureSecondes * 1000,
                     MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-            if (cfg.maPosition != null) {
-                cfg.maPosition.majPosition(latitude, longitude);
-            } else cfg.maPosition = new Position(cfg.nomUtilisateur, latitude, longitude);
-            actualise_position();
-            return localisation;
         }
-        return null;
     }
 
     @SuppressLint("DefaultLocale")
@@ -294,9 +327,14 @@ public final class LocalisationGPS implements LocationListener {
                + String.format(localeEn, FORMAT_AFFICHAGE_POSITION, longitude) + "E";
     }
     public String conversionEnDegresMinutesSecondes(double angle) {
+        String signe = "";
+        if (angle < 0) {
+            signe = "-";
+            angle = - angle;
+        }
         int degres = (int) angle;
         int minutes = (int) ((angle - ((double)degres) ) * 60);
         double secondes = (angle - ((double)degres) - ((double)minutes/60)) * 3600;
-        return "" + degres + "°" + minutes + "'" + String.format(localeEn, "%.3f", secondes) + '"';
+        return signe + degres + "°" + minutes + "'" + String.format(localeEn, "%.3f", secondes) + '"';
     }
 }

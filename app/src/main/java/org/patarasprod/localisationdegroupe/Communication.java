@@ -5,19 +5,24 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.res.ResourcesCompat;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Objects;
 
 public class Communication {
 
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     Config cfg;
     Socket socketClient;
     PrintWriter out;
@@ -29,14 +34,14 @@ public class Communication {
     }
 
     public void demarreCommunicationAvecServeur() {
-        // La création de scoket doit se faire dans un autre Thread obligatoirement
+        // La création de socket doit se faire dans un autre Thread obligatoirement
         cfg.threadCommunication = new Thread(new Runnable() {
             @Override
             public void run() {
                 cfg.communicationEnCours = false;
                 // Si on ne connaît pas notre position, on ne démarre pas la communication et on sort tout de suite
                 if (cfg.maPosition == null) {
-                    if (Config.DEBUG_LEVEL > 1) Log.v("Communication","Communication non initiée car notre position est inconnue");
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Communication non initiée car notre position est inconnue");
                     return;
                 }
                 try {
@@ -50,47 +55,53 @@ public class Communication {
                     in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
                     //if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Création réussie des 'in' et 'out' du socket");
                 } catch (Exception e) { //(IOException e) {
-                    if (Config.DEBUG_LEVEL > 1) Log.v("Communication","Problème lors de la création du socket client :");
-                    if (Config.DEBUG_LEVEL > 1) Log.v("Communication",e.toString());
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
+                            "Problème lors de la création du socket client :");
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
                     fermeture();
                     return;
                 }
-                if (Config.DEBUG_LEVEL > 3) Log.v("Communication","-------Démarrage de la communication bi-directionelle");
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                    Log.v("Communication","-------Démarrage de la communication bi-directionelle");
                 cfg.reponse = "";
                 boolean erreurCommunication = false;
+                cfg.communicationEnCours = true;
+                majIndicateurConnexion();
                 while (cfg.reponse != null && cfg.diffuserMaPosition && !erreurCommunication &&
                         !cfg.reponse.equals("FIN")) {
-                    cfg.communicationEnCours = true;
-                    if (Config.DEBUG_LEVEL > 3) Log.v("Communication","Envoi du message : " + cfg.maPosition.toString());
+                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        Log.v("Communication","Envoi du message : " + cfg.maPosition.toString());
                     // Envoi de la position au serveur
                     out.println(cfg.maPosition.toString());
                     // Récupération de la réponse
-                    if (Config.DEBUG_LEVEL > 3) Log.v("Communication","Lecture de la réponse du serveur sur " + in.toString());
+                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        Log.v("Communication","Lecture de la réponse du serveur sur " + in.toString());
                     try {
                         cfg.reponse = in.readLine();
-                        if (Config.DEBUG_LEVEL > 3) Log.v("Communication","Réponse du serveur : " + cfg.reponse);
+                        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                            Log.v("Communication","Réponse du serveur : " + cfg.reponse);
                         // Attente avant de recommencer le dialogue
-                        if (Config.DEBUG_LEVEL > 3) Log.v("Communication","Attente pendant " +
-                                cfg.intervalleMajSecondes + " s");
+                        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                            Log.v("Communication","Attente pendant " + cfg.intervalleMajSecondes + " s");
                         traitementReponse(cfg.reponse);
-                        if (cfg.fragment_3 != null) cfg.fragment_3.majTexteInfos();
+                        if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
                         android.os.SystemClock.sleep(cfg.intervalleMajSecondes*1000);
                     } catch (Exception e) {
                         cfg.reponse = cfg.ERREUR_READLINE_SOCKET_DISTANT;
                         erreurCommunication = true;
                     }
                 }
-                if (Config.DEBUG_LEVEL > 2) Log.v("Communication","-------Fermeture de la communication bi-directionelle");
-                if (Config.DEBUG_LEVEL > 3) Log.v("Communication","-------Dernière réponse du serveur : "+cfg.reponse);
+                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","-------Fermeture de la communication bi-directionelle");
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Communication","-------Dernière réponse du serveur : "+cfg.reponse);
                 cfg.communicationEnCours = false;
+                majIndicateurConnexion();
                 fermeture();
             }
-
             public void traitementReponse(String reponse) {
                 if (cfg.reponse != null) {
                     if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE) cfg.gestionPositionsUtilisateurs.majPositions(reponse);
-                    if (cfg.fragment_3 != null) {
-                        cfg.fragment_3.majTexteInfos();
+                    if (cfg.fragment_infos != null) {
+                        cfg.fragment_infos.majTexteInfos();
                     }
                 }
             }
@@ -120,6 +131,101 @@ public class Communication {
         cfg.threadCommunication.start();
     }
 
+    /** Fonction pour envoyer sa position , récupérer la réponse, mettre à jour en conséquence
+     * et fermer la connexion (1 seul couple envoi/réception)
+     */
+    public void communique1FoisAvecServeur() {
+        // La création de socket doit se faire dans un autre Thread obligatoirement
+        cfg.threadCommunication1Fois = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Si on ne connaît pas notre position, on ne démarre pas la communication et on sort tout de suite
+                if (cfg.maPosition == null) {
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Com1fois : Communication non initiée car notre position est inconnue");
+                    return;
+                }
+                try {
+                    //Création d'un socket
+                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Com1fois : Création du socket client");
+                    socketClient = new Socket(cfg.adresse_serveur, cfg.port_serveur);
+                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Com1fois : Socket client crée");
+                    out = null;
+                    in = null;
+                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
+                    in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
+                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Com1fois : Création réussie des 'in' et 'out' du socket");
+                } catch (Exception e) { //(IOException e) {
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
+                            "Com1fois : Problème lors de la création du socket client :");
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+                    fermeture();
+                    return;
+                }
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                    Log.v("Communication","Com1fois : envoi du message avec la position " + cfg.maPosition.toString());
+                // Envoi de la position au serveur
+                try {
+                    out.println(cfg.maPosition.toString());
+                    //out.flush();
+                    //out.close();
+                    //out=null;
+                    // Récupération de la réponse
+                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        Log.v("Communication","Com1fois : Lecture de la réponse du serveur sur " + in.toString());
+                    cfg.reponse = "";
+                    cfg.reponse = in.readLine();
+                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        Log.v("Communication","Com1fois : Réponse du serveur : " + cfg.reponse);
+                    traitementReponse(cfg.reponse);
+                    if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
+                } catch (Exception e) {
+                    cfg.reponse = cfg.ERREUR_READLINE_SOCKET_DISTANT;
+                }
+                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","Com1fois : -------Fermeture de la communication bi-directionelle");
+                fermeture();
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            public void traitementReponse(String reponse) {
+                if (cfg.reponse != null) {
+                    if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE) cfg.gestionPositionsUtilisateurs.majPositions(reponse);
+                    if (cfg.fragment_infos != null) {
+                        cfg.fragment_infos.majTexteInfos();
+                    }
+                }
+            }
+
+            public void fermeture() {
+                if (out != null) {
+                    out.close();
+                }
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (socketClient != null) {
+                    try {
+                        socketClient.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            public void stop() {
+                fermeture();
+            }
+        });
+        cfg.threadCommunication1Fois.start();
+    }
+
     public boolean demandeAutorisationInternet() {
         Context contexte = cfg.mainActivity.getBaseContext();
         if (ActivityCompat.checkSelfPermission(contexte, Manifest.permission.INTERNET)
@@ -132,11 +238,11 @@ public class Communication {
                     != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(contexte, Manifest.permission.ACCESS_NETWORK_STATE)
                             != PackageManager.PERMISSION_GRANTED) {
-                if (Config.DEBUG_LEVEL > 1) Log.v("Communication","Autorisation internet NON accordée");
+                if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Autorisation internet NON accordée");
                 return false;
             }
         }
-        if (Config.DEBUG_LEVEL > 3) Log.v("Communication","Autorisation internet accordée");
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Communication","Autorisation internet accordée");
         return true;
     }
 
@@ -149,6 +255,7 @@ public class Communication {
                     cfg.threadCommunication.interrupt();   // On le force à l'arrêt
                     cfg.threadCommunication = null;
                     cfg.communicationEnCours = false;
+                    majIndicateurConnexion();
                 }
             } catch (InterruptedException e) {
                 Log.v("Communication","EXCEPTION lors de l'attente de la fin du thread communication");
@@ -179,8 +286,8 @@ public class Communication {
      **/
     public void diffusionPositionAuServeur() {
         if (cfg.diffuserMaPosition) {
-            if (Config.DEBUG_LEVEL > 2) Log.v("Communication","Diffusion de la position via internet");
-            if (cfg.fragment_3 != null) cfg.fragment_3.majTexteInfos();
+            if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","Diffusion de la position via internet");
+            if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
             if (cfg.com != null) {
                 // Teste si la communication n'est pas déjà en cours
                 if (cfg.threadCommunication == null) {  // Si le thread n'est pas crée
@@ -206,7 +313,7 @@ public class Communication {
             cfg.handlerDiffusionPosition.postDelayed(() -> this.diffusionPositionAuServeur(),
                     cfg.intervalleMajSecondes * 1000);
         } else {
-            if (Config.DEBUG_LEVEL > 0) Log.v("Communication",
+            if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.v("Communication",
            "Appel de 'diffusionPositionAuServeur' alors que 'diffuserMaPosition' est à false");
         }
 
@@ -228,10 +335,39 @@ public class Communication {
                         R.drawable.serveur_injoignable,
                         cfg.mainActivity.getBaseContext().getTheme()));
             }
-            if (cfg.fragment_3 != null && cfg.fragment_3.getView() != null) {
-                cfg.fragment_3.getView().invalidate();
-                cfg.fragment_3.getView().requestLayout();
+            if (cfg.fragment_parametres != null) {
+                if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.v("Communication","AVANT requête post - communicationEnCours = " + cfg.communicationEnCours);
+                if (cfg.fragment_parametres.getView() != null) {
+                    Objects.requireNonNull(cfg.fragment_parametres.getView()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.v("Communication", "DANS requête post");
+                            if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
+                                // On est pas dans le thread UI et ce n'est pas normal !
+                                Log.v("Communication",
+                                "ERREUR : la mise à jour de l'indicateur de connexion ne se fait pas dans le thread UI !!!");
+                            }
+                            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                                Log.v("Communication", "Mise à jour de l'indicateur de connexion");
+                            cfg.fragment_parametres.getView().invalidate();
+                            cfg.fragment_parametres.getView().forceLayout();
+                            cfg.indicateurConnexionServeur.invalidate();
+                            cfg.indicateurConnexionServeur.forceLayout();
+                            if (cfg.fragment_infos != null && cfg.fragment_infos.getView() != null) {
+                                cfg.fragment_infos.getView().invalidate();
+                                cfg.fragment_infos.getView().requestLayout();
+                            }
+                        }
+                    });
+                }
+                //cfg.fragment_parametres.getView().requestLayout();
+            }
+            if (cfg.fragment_infos != null && cfg.fragment_infos.getView() != null) {
+                cfg.fragment_infos.getView().invalidate();
+                cfg.fragment_infos.getView().requestLayout();
             }
         }
     }
 }
+//package:org.patarasprod.localisationdegroupe
+// Communication | parametres
