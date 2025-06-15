@@ -22,6 +22,10 @@ import java.util.Objects;
 
 public class Communication {
 
+    // Constantes pour la communication
+    static public final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "*";
+    static public final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = "$";
+    static public final String CARACTERE_COMMUNICATION_COMMANDE = "#";
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     Config cfg;
     Socket socketClient;
@@ -48,6 +52,10 @@ public class Communication {
                     //Création d'un socket
                     //if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Création du socket client");
                     socketClient = new Socket(cfg.adresse_serveur, cfg.port_serveur);
+                    if (socketClient == null) {
+                        Log.v("Communication","Problème à la création du socket (null)");
+                        return;
+                    }
                     //if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
                     out = null;
                     in = null;
@@ -61,6 +69,12 @@ public class Communication {
                     fermeture();
                     return;
                 }
+                if (in == null || out == null) {
+                    Log.v("Communication","Problème à la création des flux entrants et sortant du socket"
+                    + "\nin = " + in + " \tout = " + out);
+                    fermeture();
+                    return;
+                }
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                     Log.v("Communication","-------Démarrage de la communication bi-directionelle");
                 cfg.reponse = "";
@@ -70,9 +84,10 @@ public class Communication {
                 while (cfg.reponse != null && cfg.diffuserMaPosition && !erreurCommunication &&
                         !cfg.reponse.equals("FIN")) {
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                        Log.v("Communication","Envoi du message : " + cfg.maPosition.toString());
+                        Log.v("Communication","Envoi du message : " +
+                                CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                     // Envoi de la position au serveur
-                    out.println(cfg.maPosition.toString());
+                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                     // Récupération de la réponse
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                         Log.v("Communication","Lecture de la réponse du serveur sur " + in.toString());
@@ -162,10 +177,11 @@ public class Communication {
                     return;
                 }
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                    Log.v("Communication","Com1fois : envoi du message avec la position " + cfg.maPosition.toString());
+                    Log.v("Communication","Com1fois : envoi du message avec la position " +
+                            CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                 // Envoi de la position au serveur
                 try {
-                    out.println(cfg.maPosition.toString());
+                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                     //out.flush();
                     //out.close();
                     //out=null;

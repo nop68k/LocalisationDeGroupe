@@ -186,7 +186,6 @@ public class GestionPositionsUtilisateurs {
     }
 
     public void sauvegardePositions() {
-        //System.out.println("OOOOOOOOOOOOOOOOOO Sauvegarde des positions dans un fichier");
         JSONArray positionsASauvegarder = new JSONArray();
         Iterator<String> iter = positions.keySet().iterator();
         String nomUtilisateur;

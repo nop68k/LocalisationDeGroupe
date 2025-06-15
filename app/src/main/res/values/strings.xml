@@ -37,11 +37,18 @@
     <string name="texte_tab2">Carte</string>
     <string name="texte_tab3">Infos</string>
     <string name="texte_tab4">Params</string>
-    <string name="description_intervalle__mesures">Intervalle de temps entre deux mesures (en secondes)</string>
+    <string name="description_intervalle__mesures">Intervalle de temps entre deux mesures (s)</string>
     <string name="decription_switch_diffuser_ma_position">Diffuser ou non ma position (switch)</string>
+    <string name="decription_switch_diffuser_en_fond">Diffuser ou non en tâche de fond</string>
+    <string name="switch_diffuser_en_fond">Diffuser en tâche de fond</string>
+    <string name="intervalle_maj_serveur">Intervalle diffusion en tâche de fond (s)</string>
     <string name="description_label_nom">Nom</string>
     <string name="label_nom_serveur">Adresse (nom) du serveur :</string>
     <string name="label_port_serveur">Port du serveur :</string>
     <string name="centrer_sur_moi">Centrer sur moi</string>
     <string name="information">Information</string>
+    <string name="LocationUpdateService">LocationUpdateService</string>
+    <string name="service_demarre">Service démarré</string>
+    <string name="description_intervalle_maj">Intervalle de temps entre deux mises à jour de la position sur le serveur</string>
+    <string name="description_champ_adresse_serveur">Adresse du serveur</string>
 </resources>

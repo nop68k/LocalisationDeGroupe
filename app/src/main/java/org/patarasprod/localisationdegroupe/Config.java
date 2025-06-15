@@ -26,10 +26,10 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 public class Config {
 
-    public static int DEBUG_LEVEL = 4; // Niveau d'expressivité des messages de debug (0 = aucun message)
+    public static int DEBUG_LEVEL = 2; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 0.9\n(Juin 2025)";
+            "Version 2.0.0\n(Juin 2025)";
     public static final String TEXTE_BOUTON_INFO = "Appui court -> centrer la carte sur la personne"+
             "\nAppui long -> appel programme externe";
 
@@ -57,6 +57,11 @@ public class Config {
     public String adresse_serveur = NOM_SERVEUR_PAR_DEFAUT;
     public final int PORT_SERVEUR_PAR_DEFAUT = 7777;
     public int port_serveur = PORT_SERVEUR_PAR_DEFAUT;
+    private final boolean PREF_DIFFUSER_EN_FOND_PAR_DEFAUT = false;
+    public boolean prefDiffuserEnFond = PREF_DIFFUSER_EN_FOND_PAR_DEFAUT;
+    private final long INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT = 5;
+    public long intervalleEnvoiEnFond = INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT;
+
 
 
     // ***
@@ -68,6 +73,8 @@ public class Config {
     public FragmentInfos fragment_infos;
     public Fragment_parametres fragment_parametres;
     public LocalisationGPS localisation;
+    public LocationUpdateService serviceArrierePlan = null;  // Référence vers le service de localisation en arrière plan
+    public AccesService accesService;
     public MainActivity mainActivity = null;   // Référence vers la MainActivity (l'activité du programme)
     public Handler handler;   // Utilisé pour lancer des tâches différées
     public Handler handlerDiffusionPosition;  // Pour diffuser la position via internet
@@ -76,8 +83,8 @@ public class Config {
     public MapView map = null;
     public IMapController mapController = null;
     public final double ZOOM_INITIAL_CARTE = 16.0;
-    public final float LATITUDE_ORIGINE_PAR_DEFAUT = 0f;
-    public final float LONGITUDE_ORIGINE_PAR_DEFAUT = 0f;
+    public final float LATITUDE_ORIGINE_PAR_DEFAUT = 48.853410f; // kilomètre zéro
+    public final float LONGITUDE_ORIGINE_PAR_DEFAUT = 2.348792f; // kilomètre zéro
     public GeoPoint maPositionSurLaCarte = null;
     public GeoPoint centreCarte = null;
     public double niveauZoomCarte = ZOOM_INITIAL_CARTE;
@@ -143,6 +150,8 @@ public class Config {
         intervalleMajSecondes = sharedPreferences.getLong("intervalleMajSecondes", INTERVALLE_MAJ_SECONDES_PAR_DEFAUT);
         adresse_serveur = sharedPreferences.getString("nomServeur", NOM_SERVEUR_PAR_DEFAUT);
         port_serveur = sharedPreferences.getInt("portServeur", PORT_SERVEUR_PAR_DEFAUT);
+        prefDiffuserEnFond = sharedPreferences.getBoolean("diffuserEnFond",PREF_DIFFUSER_EN_FOND_PAR_DEFAUT);
+        intervalleEnvoiEnFond = sharedPreferences.getLong("intervalleEnvoiEnFond", INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT);
         centreCarte = new GeoPoint((double) sharedPreferences.getFloat("centreCarte_latitude",
                    maPosition == null ? LATITUDE_ORIGINE_PAR_DEFAUT: (float)maPosition.latitude),
                 (double) sharedPreferences.getFloat("centreCarte_longitude",
@@ -178,6 +187,8 @@ public class Config {
         sauvegardePreference("intervalleMajSecondes", intervalleMajSecondes);
         sauvegardePreference("nomServeur", adresse_serveur);
         sauvegardePreference("portServeur", (int)port_serveur);
+        sauvegardePreference("diffuserEnFond", prefDiffuserEnFond);
+        sauvegardePreference("intervalleEnvoiEnFond", intervalleEnvoiEnFond);
         sauvegardePreference("centreCarte_latitude", (float)centreCarte.getLatitude());
         sauvegardePreference("centreCarte_longitude", (float)centreCarte.getLongitude());
         sauvegardePreference("niveauZoomCarte", (float)niveauZoomCarte);

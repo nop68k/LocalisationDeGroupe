@@ -2,6 +2,7 @@ package org.patarasprod.localisationdegroupe;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -10,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.ui.AppBarConfiguration;
 
 import org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding;
@@ -60,6 +62,31 @@ public class MainActivity extends AppCompatActivity {
             cfg.com.demarreDiffusionPositionAuServeur();
         }
 
+        // On instancie la classe de communication avec le service en arrière plan
+        cfg.accesService = new AccesService(cfg, getApplicationContext());
+        // Et si c'est dans les préférences, on lance le service de localisation en continu
+        if (cfg.prefDiffuserEnFond) cfg.accesService.demarrageService();
+
+        /*
+        LocationUpdateService serviceArrierePlan = new LocationUpdateService();
+        cfg.serviceArrierePlan = serviceArrierePlan;
+        cfg.serviceArrierePlan.test("message de test");
+        // D'abord on crée un intent
+        Intent serviceIntent = new Intent(this, LocationUpdateService.class);
+        // puis on prépare un bundle avec les données pour le serveur
+        Bundle donneesServeur = new Bundle();
+        donneesServeur.putString("nom", cfg.nomUtilisateur);
+        donneesServeur.putString("adresse", cfg.adresse_serveur);
+        donneesServeur.putInt("port", cfg.port_serveur);
+        serviceIntent.putExtra("data", donneesServeur);
+        ContextCompat.startForegroundService(this, serviceIntent);
+        cfg.accesService = new AccesService(cfg, getApplicationContext());
+
+        cfg.accesService.connexionService();
+
+        cfg.serviceArrierePlan.setCfg(cfg);
+        cfg.serviceArrierePlan.test("message de test après lancement");
+        */
     }
 
     /** Fonction de mise à jour de l'UI
@@ -111,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
                 builder.show();
                 return true;
             case R.id.item_menu_quitter:
+                // Stoppe le service de mise à jour
+                if (cfg.accesService != null) cfg.accesService.arreteService();
                 // Annule l'exécution différée s'il y en a une
                 if (cfg.handler != null) cfg.handler.removeCallbacksAndMessages(null);
                 if (cfg.com != null) cfg.com.stoppeDiffusionPositionAuServeur();

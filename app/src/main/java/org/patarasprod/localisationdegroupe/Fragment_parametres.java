@@ -95,11 +95,36 @@ public class Fragment_parametres extends Fragment {
         cfg.indicateurConnexionServeur = binding.indicateurConnexionServeur ;
         if (cfg.com != null) cfg.com.majIndicateurConnexion();
 
+        binding.champIntervalleMajService.setText(String.valueOf(cfg.intervalleEnvoiEnFond));
+        binding.champIntervalleMajService.setOnEditorActionListener(traitementActions);
+        binding.champIntervalleMajService.setOnFocusChangeListener(this::onFocusChange);
+
+        // Met le commutateur de diffusion en tâche de fond dans le bon état
+        binding.switchDiffuserEnTacheDeFond.setChecked(cfg.prefDiffuserEnFond);
+
+        binding.switchDiffuserEnTacheDeFond.setOnCheckedChangeListener((v, isChecked) -> {
+            if (cfg.accesService == null) {
+                if (Config.DEBUG_LEVEL > 0) Log.v("parametres",
+                        "ERREUR : La classe AccesService n'est pas instanciée alors qu'on veut modifier l'état du service !");
+                return;
+            }
+            cfg.prefDiffuserEnFond = isChecked;
+            if (isChecked) {
+                cfg.accesService.demarrageService();
+            } else {
+                cfg.accesService.arreteService();
+            }
+            cfg.sauvegardePreference("diffuserEnFond", cfg.prefDiffuserEnFond);
+        });
+
+
         return root;
     }
 
     /** Met à jour la configuration en fonction du contenu des champs de saisie et relance la
      * communication si les paramètres de nom, adresse ou port ont changés
+     * provoque également un changement de configuration du service LocationUpdateService s'il y a
+     * des changements le concernant.
      */
     public void majParametres() {
         try {
@@ -115,6 +140,9 @@ public class Fragment_parametres extends Fragment {
             cfg.adresse_serveur = String.valueOf(binding.champAdresseServeur.getText()).trim();
             cfg.port_serveur = Integer.parseInt(String.valueOf(binding.champPortServeur.getText()));
 
+            long ancienIntervalleEnvoiEnFond = cfg.intervalleEnvoiEnFond;
+            cfg.intervalleEnvoiEnFond = Long.parseLong(String.valueOf((binding.champIntervalleMajService)));
+
             // Si les paramètres du serveur ou le nom ont changé, on relance la communication avec les nouveau paramètres
             if ((!ancienAdrServeur.equals(cfg.adresse_serveur) || ancienPortServeur != cfg.port_serveur
                     || !ancienNom.equals(cfg.nomUtilisateur)) && cfg.com != null) {
@@ -122,9 +150,12 @@ public class Fragment_parametres extends Fragment {
                         "Les paramètres ont changés et nécessitent un redémarrage de la communication");
                 cfg.com.stoppeDiffusionPositionAuServeur();
                 cfg.com.demarreDiffusionPositionAuServeur();
-                if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
-                        "Tentative de maj de l'indicateur de connexion");
-                //cfg.com.majIndicateurConnexion();
+            }
+            if ((!ancienAdrServeur.equals(cfg.adresse_serveur) || ancienPortServeur != cfg.port_serveur
+                    || !ancienNom.equals(cfg.nomUtilisateur))
+                    ||ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiEnFond
+                    && cfg.com != null && cfg.accesService != null) {
+                cfg.accesService.majParametresService(cfg);  // Met à jour la configuration du service en arrière plan
             }
 
             if (Config.DEBUG_LEVEL > 3) {

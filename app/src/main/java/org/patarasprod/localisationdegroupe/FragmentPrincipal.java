@@ -112,7 +112,7 @@ public class FragmentPrincipal extends NavHostFragment {
         binding.fabInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, cfg.TEXTE_BOUTON_INFO, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                Snackbar.make(view, Config.TEXTE_BOUTON_INFO, Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
 
