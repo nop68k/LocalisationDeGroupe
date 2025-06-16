@@ -3,7 +3,14 @@ package org.patarasprod.localisationdegroupe;
 import static androidx.core.content.ContextCompat.getSystemService;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -17,9 +24,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import org.patarasprod.localisationdegroupe.databinding.FragmentParametresBinding;
+
 
 /**
  * A placeholder fragment containing a simple view.
@@ -28,6 +39,7 @@ public class Fragment_parametres extends Fragment {
 
     private FragmentParametresBinding binding;
     Config cfg;
+    private ColorStateList couleursChamps; // Couleurs utilisées par les champs de saisie (pour pouvoir les restaurer)
 
 
     @Override
@@ -75,6 +87,7 @@ public class Fragment_parametres extends Fragment {
         binding.champAdresseServeur.setOnEditorActionListener(traitementActions);
         binding.champAdresseServeur.setOnFocusChangeListener(this::onFocusChange);
         binding.champPortServeur.setText(String.valueOf(cfg.port_serveur));
+        couleursChamps = binding.champPortServeur.getTextColors();
         binding.champPortServeur.setOnEditorActionListener(traitementActions);
         binding.champPortServeur.setOnFocusChangeListener(this::onFocusChange);
 
@@ -116,16 +129,18 @@ public class Fragment_parametres extends Fragment {
             }
             cfg.sauvegardePreference("diffuserEnFond", cfg.prefDiffuserEnFond);
         });
-
-
         return root;
     }
 
-    /** Met à jour la configuration en fonction du contenu des champs de saisie et relance la
+
+
+    /**
+     * Met à jour la configuration en fonction du contenu des champs de saisie et relance la
      * communication si les paramètres de nom, adresse ou port ont changés
      * provoque également un changement de configuration du service LocationUpdateService s'il y a
      * des changements le concernant.
      */
+
     public void majParametres() {
         try {
             String ancienNom = cfg.nomUtilisateur;
@@ -139,6 +154,12 @@ public class Fragment_parametres extends Fragment {
             int ancienPortServeur = cfg.port_serveur;
             cfg.adresse_serveur = String.valueOf(binding.champAdresseServeur.getText()).trim();
             cfg.port_serveur = Integer.parseInt(String.valueOf(binding.champPortServeur.getText()));
+            if (cfg.port_serveur < 0 || cfg.port_serveur > 65535) {
+                binding.champPortServeur.setTextColor(0xFF0000);   // passe le texte en rouge
+                Snackbar.make(this.getView(), getString(R.string.msg_no_port_invalide), Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            } else {
+                binding.champPortServeur.setTextColor(couleursChamps);  // restaure la couleur d'origine du champ
+            }
 
             long ancienIntervalleEnvoiEnFond = cfg.intervalleEnvoiEnFond;
             cfg.intervalleEnvoiEnFond = Long.parseLong(String.valueOf((binding.champIntervalleMajService)));
@@ -166,7 +187,8 @@ public class Fragment_parametres extends Fragment {
             }
 
         } catch (Exception e) {
-
+            if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
+                    "Problème dans la conversion des entrées : " + e.toString());
         }
         if (Config.DEBUG_LEVEL > 2) Log.v("parametres", "Sauvegarde des paramètres");
         cfg.sauvegardeToutesLesPreferences();

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
@@ -37,6 +38,38 @@ public class Communication {
         demandeAutorisationInternet();
     }
 
+    /**
+     * Crée un socket client et met à jour l'indicateur de connexion au serveur si besoin
+     * @param adresse String : adresse du serveur
+     * @param port Int : port où joindre le serveur
+     * @return null ou objet Socket si le socket a pu être crée
+     */
+    public Socket creationSocketClient(String adresse, int port) {
+        if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Création du socket client");
+        try {
+            Socket socketClient = new Socket(adresse, port);
+            if (socketClient == null) {
+                Log.v("Communication","Problème à la création du socket (null)");
+                return null;
+            }
+            if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
+            if (cfg.connectionAuServeurOK) return socketClient;
+            // La connection n'était pas établie, donc on l'indique
+            cfg.connectionAuServeurOK = true;
+            majIndicateurConnexion();     // Et on met à jour le voyant
+            return socketClient;
+        } catch (Exception e) { //(IOException e) {
+            if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
+                    "Problème lors de la création du socket client :");
+            if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+            if (!cfg.connectionAuServeurOK) return null;
+            // La connection était établie, donc on indique qu'elle est tombée
+            cfg.connectionAuServeurOK = false;
+            majIndicateurConnexion();     // Et on met à jour le voyant
+            return null;
+        }
+    }
+
     public void demarreCommunicationAvecServeur() {
         // La création de socket doit se faire dans un autre Thread obligatoirement
         cfg.threadCommunication = new Thread(new Runnable() {
@@ -49,14 +82,7 @@ public class Communication {
                     return;
                 }
                 try {
-                    //Création d'un socket
-                    //if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Création du socket client");
-                    socketClient = new Socket(cfg.adresse_serveur, cfg.port_serveur);
-                    if (socketClient == null) {
-                        Log.v("Communication","Problème à la création du socket (null)");
-                        return;
-                    }
-                    //if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
+                    socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
                     out = null;
                     in = null;
                     out = new PrintWriter(socketClient.getOutputStream(), true);
@@ -80,7 +106,6 @@ public class Communication {
                 cfg.reponse = "";
                 boolean erreurCommunication = false;
                 cfg.communicationEnCours = true;
-                majIndicateurConnexion();
                 while (cfg.reponse != null && cfg.diffuserMaPosition && !erreurCommunication &&
                         !cfg.reponse.equals("FIN")) {
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
@@ -109,7 +134,6 @@ public class Communication {
                 if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","-------Fermeture de la communication bi-directionelle");
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Communication","-------Dernière réponse du serveur : "+cfg.reponse);
                 cfg.communicationEnCours = false;
-                majIndicateurConnexion();
                 fermeture();
             }
             public void traitementReponse(String reponse) {
@@ -160,10 +184,7 @@ public class Communication {
                     return;
                 }
                 try {
-                    //Création d'un socket
-                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Com1fois : Création du socket client");
-                    socketClient = new Socket(cfg.adresse_serveur, cfg.port_serveur);
-                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Com1fois : Socket client crée");
+                    socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
                     out = null;
                     in = null;
                     out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
@@ -271,6 +292,7 @@ public class Communication {
                     cfg.threadCommunication.interrupt();   // On le force à l'arrêt
                     cfg.threadCommunication = null;
                     cfg.communicationEnCours = false;
+                    cfg.connectionAuServeurOK = false;
                     majIndicateurConnexion();
                 }
             } catch (InterruptedException e) {
@@ -340,7 +362,7 @@ public class Communication {
      */
     public void majIndicateurConnexion() {
         if (cfg.indicateurConnexionServeur != null) {
-            if (cfg.communicationEnCours) {
+            if (cfg.connectionAuServeurOK) {
                 cfg.indicateurConnexionServeur.setImageDrawable(ResourcesCompat.getDrawable(
                         cfg.mainActivity.getBaseContext().getResources(),
                         R.drawable.serveur_actif,
@@ -351,6 +373,14 @@ public class Communication {
                         R.drawable.serveur_injoignable,
                         cfg.mainActivity.getBaseContext().getTheme()));
             }
+            if (cfg.handlerMainThread != null) {   // Si le handler n'est pas null
+                // On crée un message pour demander au thread principal de mettre à jour la vue
+                // parametres qui contient l'indicateur de connexion
+                Message msg = Message.obtain(cfg.handlerMainThread, MainActivity.MSG_MAJ_VIEW);
+                msg.obj = cfg.fragment_parametres.getView();
+                cfg.handlerMainThread.sendMessage(msg);
+            }
+            /*
             if (cfg.fragment_parametres != null) {
                 if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.v("Communication","AVANT requête post - communicationEnCours = " + cfg.communicationEnCours);
                 if (cfg.fragment_parametres.getView() != null) {
@@ -382,6 +412,7 @@ public class Communication {
                 cfg.fragment_infos.getView().invalidate();
                 cfg.fragment_infos.getView().requestLayout();
             }
+            */
         }
     }
 }

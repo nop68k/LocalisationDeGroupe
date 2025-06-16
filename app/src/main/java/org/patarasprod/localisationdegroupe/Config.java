@@ -73,8 +73,8 @@ public class Config {
     public FragmentInfos fragment_infos;
     public Fragment_parametres fragment_parametres;
     public LocalisationGPS localisation;
-    public LocationUpdateService serviceArrierePlan = null;  // Référence vers le service de localisation en arrière plan
-    public AccesService accesService;
+    public Handler handlerMainThread;    // Hadler pour communiquer avec le thread principal
+    public AccesService accesService;    // Accès au service d'arrière plan
     public MainActivity mainActivity = null;   // Référence vers la MainActivity (l'activité du programme)
     public Handler handler;   // Utilisé pour lancer des tâches différées
     public Handler handlerDiffusionPosition;  // Pour diffuser la position via internet
@@ -110,6 +110,8 @@ public class Config {
     Thread threadCommunication = null;          // Pointeur vers le thread communication
     Thread threadCommunication1Fois = null;     // Thread pour une communication unique
     public boolean communicationEnCours = false; // Le thread d'envoi vers le serveur est dans la boucle d'envoi
+    public boolean connectionAuServeurOK = false; // Indique si la connection au serveur est correcte
+    // (mis à jour lors de la création du socket et utilisé pour le voyant "état serveur"
     public boolean diffuserMaPosition = true;
 
     public int nbPositions = 0;    // Nombre de positions suivies

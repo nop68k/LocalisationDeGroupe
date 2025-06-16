@@ -83,7 +83,7 @@ public class LocationUpdateService extends Service {
     }
 
     /**
-     * Handler of incoming messages from clients.
+     * Handler pour dialoguer (récupérer les messages) avec l'activité principale
      */
     class IncomingHandler extends Handler {
         @Override
@@ -99,7 +99,7 @@ public class LocationUpdateService extends Service {
                     if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Arrêt du service demandé");
                     stopLocationUpdateService();
                     break;
-                case 3:
+                case 999:
                     int mValue = msg.arg1;
                     break;
                 default:
@@ -108,10 +108,14 @@ public class LocationUpdateService extends Service {
         }
     }
 
-    /**
-     * Target we publish for clients to send messages to IncomingHandler.
-     */
+    // Instanciation de l'handler pour la communication
     final Messenger mMessenger = new Messenger(new IncomingHandler());
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mMessenger.getBinder();
+    }
 
 
     public void majConfigurationService(Bundle bundle) {
@@ -309,18 +313,6 @@ public class LocationUpdateService extends Service {
         fusedLocationClient.removeLocationUpdates(locationCallback);
     }
 
-    /**
-     * @param intent The Intent that was used to bind to this service,
-     *               as given to {@link android.content.Context#bindService
-     *               Context.bindService}.  Note that any extras that were included with
-     *               the Intent at that point will <em>not</em> be seen here.
-     * @return
-     */
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return mMessenger.getBinder();
-    }
 
     public void test(String msg) {
         Log.d("LocationUpdateService", "Message : " + msg);

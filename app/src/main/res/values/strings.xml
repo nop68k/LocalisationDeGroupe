@@ -51,4 +51,5 @@
     <string name="service_demarre">Service démarré</string>
     <string name="description_intervalle_maj">Intervalle de temps entre deux mises à jour de la position sur le serveur</string>
     <string name="description_champ_adresse_serveur">Adresse du serveur</string>
+    <string name="msg_no_port_invalide">Le numéro de port doit être entre 0 et 65535 !</string>
 </resources>

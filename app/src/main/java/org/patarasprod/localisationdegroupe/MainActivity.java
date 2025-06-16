@@ -2,16 +2,15 @@ package org.patarasprod.localisationdegroupe;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.navigation.ui.AppBarConfiguration;
 
 import org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding;
@@ -19,8 +18,9 @@ import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilis
 
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements Handler.Callback {
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+    public static final int MSG_MAJ_VIEW = 1;   // Message pour mettre à jour la vue
     private AppBarConfiguration appBarConfiguration;
     protected Config cfg;
     org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding binding;
@@ -54,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
     private void initialisations() {
+        // Instanciation de l'handler pour la communication
+        cfg.handlerMainThread = new Handler(this);
+
         cfg.localisation = new LocalisationGPS(this, cfg);
         cfg.com = new Communication(cfg);
 
@@ -111,7 +114,6 @@ public class MainActivity extends AppCompatActivity {
                     Objects.requireNonNull(cfg.fragment_infos.getView()).invalidate();   // Pour forcer la mise à jour de l'affichage
                     //cfg.fragment_3.getView().requestLayout();
                     if (cfg.map != null) cfg.map.invalidate();
-                    if (cfg.com != null) cfg.com.majIndicateurConnexion();
                 }
                 if (cfg.com != null) cfg.com.majIndicateurConnexion();
                 return true;
@@ -156,6 +158,40 @@ public class MainActivity extends AppCompatActivity {
     public Config recupere_configuration() {
         return this.cfg;
     }
+
+    /**
+     * Handler pour dialoguer (récupérer les messages) avec les autres threads de l'application
+     *
+     * @return true si le traitement est terminé
+     */
+    @Override
+    public boolean handleMessage(Message msg) {
+        switch (msg.what) {
+            case MSG_MAJ_VIEW:
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("mainActivity", "Mise à jour de la vue demandée");
+                View mView = (View)msg.obj;   // La vue doit être spécifiée dans l'objet
+                if (mView == null) {
+                    if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("mainActivity",
+                            "Mise à jour vue demandée, mais la vue n'est pas spécifiée !");
+                    break;
+                }
+                if (mView.getVisibility() == View.VISIBLE) {  // Si la vue est visible
+                    mView.invalidate();
+                } else {
+                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("mainActivity",
+                            "Mise à jour de la vue demandée ... mais la vue est non visible");
+                }
+                break;
+
+            default:
+                if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("mainActivity",
+                        "Code message inconnu ! : " + msg.what);
+                return false;
+        }
+        return true;
+    }
+
+
 
     @Override
     public void onResume() {
