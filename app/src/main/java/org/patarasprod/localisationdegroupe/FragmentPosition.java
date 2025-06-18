@@ -12,6 +12,8 @@ import android.widget.ImageButton;
 import androidx.annotation.NonNull;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import org.patarasprod.localisationdegroupe.databinding.FragmentPositionBinding;
 
 /**
@@ -44,6 +46,8 @@ public class FragmentPosition extends NavHostFragment {
         View root = binding.getRoot();
 
         cfg.textViewLocalisation = binding.labelMaPosition;
+        // Ajoute un listener sur le texte de la position pour que la position soit envoyée au serveur
+        // une seule fois après le click sur ce texte
         cfg.textViewLocalisation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -65,8 +69,9 @@ public class FragmentPosition extends NavHostFragment {
             public void onClick(View v) {
                 String pourPressePapier = cfg.textViewLocalisation.getText().toString();
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(getContext().CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text", pourPressePapier);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Position", pourPressePapier);
                 clipboard.setPrimaryClip(clip);
+                Snackbar.make(cfg.fragment_position.getView(), getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
             }
         });
 
@@ -78,17 +83,13 @@ public class FragmentPosition extends NavHostFragment {
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(getContext().CLIPBOARD_SERVICE);
                 android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text", pourPressePapier);
                 clipboard.setPrimaryClip(clip);
+                Snackbar.make(cfg.fragment_position.getView(), getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
             }
         });
 
-
         if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("Fragment Position", "Création du fragment Position");
-        //cfg.localisation.getLocalisation();
-
         return root;
     }
-
-
 
     @Override
     public void onDestroyView() {

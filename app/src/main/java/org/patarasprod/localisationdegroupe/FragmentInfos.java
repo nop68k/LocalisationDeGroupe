@@ -46,11 +46,27 @@ public class FragmentInfos extends Fragment {
         binding = FragmentInfosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
+        // Enregistre la référence vers le texte d'infos et fixe sa visibilité en fonction de
+        // l'état de l'item de menu "Infos debug"
         cfg.texteInfos = binding.Infos;
+        cfg.texteInfos.setVisibility(cfg.itemMenuInfosDebug ? View.VISIBLE : View.GONE);
+
         cfg.recyclerViewPositions = binding.listePositions;
         configureRecyclerView();
+
+        ((MainActivity) requireActivity()).majUI(this.getView());  // Met à jour la vue
+
+        root.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+            // Méthode appelée quand la visibilité sur cette vue change
+            @Override
+            public void onSystemUiVisibilityChange(int visibility) {
+                if (Config.DEBUG_LEVEL > 0) Log.v("infos", "Changement de visibilité à : " + visibility);
+            }
+        });
         return root;
     }
+
+
 
     // 3 - Configure RecyclerView, Adapter, LayoutManager & glue it together
     private void configureRecyclerView(){
@@ -87,7 +103,10 @@ public class FragmentInfos extends Fragment {
             texte += "port_serveur : " + cfg.port_serveur + "\n";
             texte += "handlerDiffuserPosition :" + cfg.handlerDiffusionPosition + "\n" + "\n";
             texte += "reponse : " + cfg.reponse + "\n";
-            if (cfg.texteInfos != null) cfg.texteInfos.setText(texte);
+            if (cfg.texteInfos != null) {
+                cfg.texteInfos.setText(texte);
+                cfg.texteInfos.setVisibility(cfg.itemMenuInfosDebug ? View.VISIBLE : View.GONE);
+            }
         }
     }
 

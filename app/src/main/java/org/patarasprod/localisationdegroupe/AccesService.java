@@ -1,7 +1,5 @@
 package org.patarasprod.localisationdegroupe;
 
-import static android.content.Context.ACTIVITY_SERVICE;
-import static androidx.core.content.ContextCompat.getSystemService;
 import static java.lang.Thread.sleep;
 
 import android.app.ActivityManager;
@@ -20,6 +18,11 @@ import androidx.core.content.ContextCompat;
 
 import java.util.List;
 
+/**
+ * Classe permettant d'interagir avec le service en arrière plan (classe LocationUpdateService)
+ * Cette classe permet de démarrer et d'arrêter le service, mais aussi de mettre à jour sa configuration
+ * ou sa notification
+ */
 public class AccesService {
 
     private final Context mContext;
@@ -35,32 +38,24 @@ public class AccesService {
         mConnection = new ServiceConnection() {
             public void onServiceConnected(ComponentName className,
                                            IBinder service) {
-                // This is called when the connection with the service has been
-                // established, giving us the service object we can use to
-                // interact with the service.  We are communicating with our
-                // service through an IDL interface, so get a client-side
-                // representation of that from the raw service object.
+                // Fonction appelée lorsque l'on s'est connecté au service en arrière plan
                 mService = new Messenger(service);
                 Log.d("AccesService", "Service connecté !");
+                mIsBound = true;   // Indique que la connexion au service est bien faite
 
-                // We want to monitor the service for as long as we are
-                // connected to it.
+                // On envoi un message au service pour lui indiquer qu'on est connecté
                 Message msg = Message.obtain(null,
                         LocationUpdateService.MSG_PREMIERE_CONNEXION);
                 try {
                     //msg.replyTo = mMessenger;  // Si on veut une réponse
                     mService.send(msg);
                 } catch (RemoteException e) {
-                    // In this case the service has crashed before we could even
-                    // do anything with it; we can count on soon being
-                    // disconnected (and then reconnected if it can be restarted)
-                    // so there is no need to do anything here.
+                    // Si le service s'est crashé le message échouera
                 }
             }
 
             public void onServiceDisconnected(ComponentName className) {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
+                // Appelée si le service a été déconnecté (crash du service par exemple)
                 mService = null;
                 Log.d("AccesService", "Service déconnecté !");
             }
@@ -81,8 +76,8 @@ public class AccesService {
         }
     }
 
-    /** Envoi un message avec des données dans un bundle
-     *
+    /**
+     * Envoi un message avec des données dans un bundle
      * @param codeMsg  Code de la commande
      * @param bundle   Données à transmettre avec le message
      */
@@ -98,9 +93,6 @@ public class AccesService {
     }
 
     public boolean connexionService() {
-        // Establish a connection with the service.  We use an explicit
-        // class name because there is no reason to be able to let other
-        // applications replace our component.
         mContext.bindService(new Intent(mContext,
                 LocationUpdateService.class), mConnection, Context.BIND_AUTO_CREATE);
         try {
@@ -109,48 +101,49 @@ public class AccesService {
             throw new RuntimeException(e);
         }
         if (mService != null) {
-            mIsBound = true;
+            mIsBound = true;    // Drapeau indiquant que la liaison est effective
             return true;
         }
         return false;
     }
 
     void deconnexionService() {
-        if (mIsBound) {
-            // If we have received the service, and hence registered with
-            // it, then now is the time to unregister.
-            if (mService != null) {
-                try {
+        if (mIsBound) {                // Si le service est effectivement connecté
+            if (mService != null) {    // Et qu'on a bien une référence sur le service
+                try {                  // On va lui envoyer le message de déconnexion
                     Message msg = Message.obtain(null,
                             LocationUpdateService.MSG_DECONNEXION);
                     //msg.replyTo = mMessenger;
                     mService.send(msg);
                 } catch (RemoteException e) {
-                    // There is nothing special we need to do if the service
-                    // has crashed.
+                    // Si le service a déjà crashé, il n'y a rien à faire
                 }
             }
-
-            // Detach our existing connection.
+            // On détache la connexion existante
             mContext.unbindService(mConnection);
             mIsBound = false;
         }
     }
 
+    /**
+     * Création du bundle avec les paramètres nécessaires au fonctionnement du service en arrière plan
+     * @param config  Un objet Config contenant les informations
+     * @return un objet Bundle contenant uniquement les informations utiles
+     */
     public Bundle creationBundleParametresService(Config config) {
         Bundle donneesServeur = new Bundle();
         donneesServeur.putString("nom", config.nomUtilisateur);
         donneesServeur.putString("adresse", config.adresse_serveur);
         donneesServeur.putInt("port", config.port_serveur);
-        donneesServeur.putLong("intervalle_envoi_en_fond", config.intervalleEnvoiEnFond);
+        donneesServeur.putLong("intervalle_envoi_en_fond", config.intervalleEnvoiService);
         return donneesServeur;
     }
 
     /**
-     * Check if the service is Running
-     * @param serviceClass the class of the Service
-     *
-     * @return true if the service is running otherwise false
+     * Vérifie si le service dont la classe est donnée en argument est en cours d'exécution (en
+     * le cherchant dans la liste des services actuellement en exécution).
+     * @param serviceClass Classe du service cherché
+     * @return true si le service est actuellement en fonctionnement
      */
     private boolean isMyServiceRunning(Class<?> serviceClass) {
         ActivityManager manager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
@@ -182,14 +175,14 @@ public class AccesService {
         Log.d("AccesService", "Arrêt du service ...");
         envoiMsgService(LocationUpdateService.MSG_ARRET_SERVICE);
         deconnexionService();
-        //mContext.stopService(new Intent(mContext, LocationUpdateService.class));
     }
 
-    /** Met à jour les paramètres du service à partir de la configuration fournie en argument
+    /**
+     * Met à jour les paramètres du service à partir de la configuration fournie en argument
      * @param config   Objet configuration contenant les paramètres à jour
-     *
      */
     public void majParametresService(Config config) {
+        Log.d("AccesService", "demande de maj avec mIsbound = " + mIsBound);
         if (!mIsBound) return;   // Si pas de connexion au service, on ne fait rien
         if (config == null) config = cfg;
         Bundle bundle = null;

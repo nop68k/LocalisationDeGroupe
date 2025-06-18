@@ -24,27 +24,28 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
+/**
+ * Classe stockant la configuration du système
+ * Cette classe stocke les références vers les objets utiles et possède des méthodes pour sauvegarder
+ * et restaurer la configuration de l'application dans le stockage persistant.
+ */
 public class Config {
 
-    public static int DEBUG_LEVEL = 2; // Niveau d'expressivité des messages de debug (0 = aucun message)
+    public static int DEBUG_LEVEL = 5; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 2.0.0\n(Juin 2025)";
-    public static final String TEXTE_BOUTON_INFO = "Appui court -> centrer la carte sur la personne"+
-            "\nAppui long -> appel programme externe";
+            "Version 2.0.5\n(Juin 2025)";
 
     protected Context contexte;
-    protected AssetManager manager;
-    protected ActionBar barreTitre;
     public FragmentManager fragmentManager;
-    public NavController navController;
-
     public ViewPager2 viewPager = null;
     public MyAdapter adapterViewPager;
 
     // *******************************************
     // *** Préférences (paramètres) sauvegardés
     // *******************************************
+    private final boolean ETAT_ITEM_MENU_INFOS_DEBUG_PAR_DEFAUT = false;
+    public boolean itemMenuInfosDebug = ETAT_ITEM_MENU_INFOS_DEBUG_PAR_DEFAUT;
     private final String NOM_UTILISATEUR_PAR_DEFAUT = "Anonyme";
     public String nomUtilisateur = NOM_UTILISATEUR_PAR_DEFAUT;
     private final boolean PREF_DIFFUSER_POSITION_PAR_DEFAUT = false;
@@ -59,15 +60,14 @@ public class Config {
     public int port_serveur = PORT_SERVEUR_PAR_DEFAUT;
     private final boolean PREF_DIFFUSER_EN_FOND_PAR_DEFAUT = false;
     public boolean prefDiffuserEnFond = PREF_DIFFUSER_EN_FOND_PAR_DEFAUT;
-    private final long INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT = 5;
-    public long intervalleEnvoiEnFond = INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT;
+    private final long INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT = 300;
+    public long intervalleEnvoiService = INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT;
 
 
 
     // ***
     public Position maPosition;    //Position de l'utilisateur principal
     public GestionPositionsUtilisateurs gestionPositionsUtilisateurs;
-
     public FragmentPosition fragment_position;
     public FragmentCarte fragment_carte;
     public FragmentInfos fragment_infos;
@@ -130,7 +130,6 @@ public class Config {
     public FloatingActionButton centrerSurMaPosition;  // Bouton flottant pour centrer sur ma position
     public FloatingActionButton fabInfo;
 
-    public String fragmentAffiche; // Fragment actuellement affiché
     private SharedPreferences sharedPreferences;   // Stockage persistant pour les paramètres
     private SharedPreferences.Editor editor;
 
@@ -145,7 +144,12 @@ public class Config {
         gestionPositionsUtilisateurs = new GestionPositionsUtilisateurs(this);
     }
 
+    /**
+     * Charge les préférences stockées dans le stockage persistant (sharedPreferences) pour se souvenir
+     * de l'état de l'application lorsqu'on y revient
+     */
     private void chargePreferences() {
+        itemMenuInfosDebug = sharedPreferences.getBoolean("itemMenuInfosDebug", ETAT_ITEM_MENU_INFOS_DEBUG_PAR_DEFAUT);
         nomUtilisateur = sharedPreferences.getString("nomUtilisateur", NOM_UTILISATEUR_PAR_DEFAUT);
         prefDiffuserMaPosition = sharedPreferences.getBoolean("diffuserMaPosition", PREF_DIFFUSER_POSITION_PAR_DEFAUT);
         intervalleMesureSecondes = sharedPreferences.getLong("intervalleMesureSecondes", INTERVALLE_MESURE_SECONDES_PAR_DEFAUT);
@@ -153,7 +157,7 @@ public class Config {
         adresse_serveur = sharedPreferences.getString("nomServeur", NOM_SERVEUR_PAR_DEFAUT);
         port_serveur = sharedPreferences.getInt("portServeur", PORT_SERVEUR_PAR_DEFAUT);
         prefDiffuserEnFond = sharedPreferences.getBoolean("diffuserEnFond",PREF_DIFFUSER_EN_FOND_PAR_DEFAUT);
-        intervalleEnvoiEnFond = sharedPreferences.getLong("intervalleEnvoiEnFond", INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT);
+        intervalleEnvoiService = sharedPreferences.getLong("intervalleEnvoiEnFond", INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT);
         centreCarte = new GeoPoint((double) sharedPreferences.getFloat("centreCarte_latitude",
                    maPosition == null ? LATITUDE_ORIGINE_PAR_DEFAUT: (float)maPosition.latitude),
                 (double) sharedPreferences.getFloat("centreCarte_longitude",
@@ -183,6 +187,7 @@ public class Config {
         editor.commit();
     }
     public void sauvegardeToutesLesPreferences() {
+        sauvegardePreference("itemMenuInfosDebug", itemMenuInfosDebug);
         sauvegardePreference("nomUtilisateur", nomUtilisateur);
         sauvegardePreference("diffuserMaPosition", prefDiffuserMaPosition);
         sauvegardePreference("intervalleMesureSecondes", intervalleMesureSecondes);
@@ -190,7 +195,7 @@ public class Config {
         sauvegardePreference("nomServeur", adresse_serveur);
         sauvegardePreference("portServeur", (int)port_serveur);
         sauvegardePreference("diffuserEnFond", prefDiffuserEnFond);
-        sauvegardePreference("intervalleEnvoiEnFond", intervalleEnvoiEnFond);
+        sauvegardePreference("intervalleEnvoiEnFond", intervalleEnvoiService);
         sauvegardePreference("centreCarte_latitude", (float)centreCarte.getLatitude());
         sauvegardePreference("centreCarte_longitude", (float)centreCarte.getLongitude());
         sauvegardePreference("niveauZoomCarte", (float)niveauZoomCarte);

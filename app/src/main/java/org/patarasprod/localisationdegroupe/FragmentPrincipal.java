@@ -9,11 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.navigation.NavController;
+
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -112,7 +109,7 @@ public class FragmentPrincipal extends NavHostFragment {
         binding.fabInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, Config.TEXTE_BOUTON_INFO, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                Snackbar.make(view, getString(R.string.texte_bouton_info), Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
 

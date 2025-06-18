@@ -15,6 +15,7 @@ import android.location.LocationRequest;
 import android.location.LocationRequest.Builder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -101,12 +102,12 @@ public final class LocalisationGPS implements LocationListener {
         }
     }
 
+    /**
+     * Fonction qui vérifie qu'on a les autorisations de localisation et de localisation en
+     * tâche de fond et les demande le cas échant.
+     * @return Renvoie true si on a toutes les autorisations et false sinon.
+     */
     public boolean demandeAutorisationsLocalisation() {
-        /* Fonction qui vérifie qu'on a les autorisations de localisation et de localisation en
-         * tâche de fond et les demande le cas échant. Renvoie true si on a toutes les autorisations
-         * et false sinon.
-         */
-        //System.out.println("Demande des autorisations de localisation");
         if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions((Activity) mContext, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
@@ -128,7 +129,6 @@ public final class LocalisationGPS implements LocationListener {
 
     /**
      * Récupère la localisation actuelle
-     *
      * @return localisation actuelle (objet Location) ou null si échec
      */
     @SuppressLint("MissingPermission")
@@ -160,7 +160,8 @@ public final class LocalisationGPS implements LocationListener {
         return null;
     }
 
-    /** Fonction pour mettre en place l'actualisation régulière de la position
+    /**
+     * Fonction pour mettre en place l'actualisation régulière de la position
      * Basé sur le LocationManager et la méthode requestLocationUpdates
      */
     @RequiresPermission(allOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
@@ -198,6 +199,9 @@ public final class LocalisationGPS implements LocationListener {
         }
     }
 
+    /**
+     * Actualise la position affichée dans l'onglet "Position"
+     */
     @SuppressLint("DefaultLocale")
     public void actualise_position() {
         if (cfg.textViewLocalisation != null) {
@@ -218,46 +222,21 @@ public final class LocalisationGPS implements LocationListener {
         if (cfg.textViewLongitude != null) {
             cfg.textViewLongitude.setText(conversionEnDegresMinutesSecondes(longitude));
         }
+        if (cfg.handlerMainThread != null && cfg.fragment_position != null) { // Si possible
+            // On crée un message pour demander au thread principal de mettre à jour le fragment position
+            Message msg = Message.obtain(cfg.handlerMainThread, MainActivity.MSG_MAJ_VIEW);
+            msg.obj = cfg.fragment_position.getView();
+            cfg.handlerMainThread.sendMessage(msg);
+        }
     }
 
     /**
      * Arrêt des mises à jour de la position (quand on ferme l'application)
-     * */
+     */
     public void arretMisesAJour() {
         if (locationManager != null) {
             locationManager.removeUpdates(this);
         }
-    }
-
-    /**
-     * Function to get latitude
-     * */
-    public double getLatitude() {
-        if (localisation != null) {
-            latitude = localisation.getLatitude();
-        }
-        // return latitude
-        return latitude;
-    }
-
-    /**
-     * Function to get longitude
-     * */
-    public double getLongitude() {
-        if (localisation != null) {
-            longitude = localisation.getLongitude();
-        }
-        // return longitude
-        return longitude;
-    }
-
-    /**
-     * Function to check GPS/wifi enabled
-     *
-     * @return boolean
-     * */
-    public boolean isLocalisationDisponible() {
-        return this.localisationDisponible;
     }
 
     /**

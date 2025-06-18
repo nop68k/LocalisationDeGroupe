@@ -40,25 +40,33 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /** Classe du service d'envoi en tâche de fond de la localisation
  *
  */
 public class LocationUpdateService extends Service {
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
-    public final long INTERVALLE_MAJ_MINI = 3000;   // Temps mini entre 2 m.a.j. (en ms)
-    public final long INTERVALLE_MAJ_MAX = 10*1000;   // Temps maxi entre 2 m.a.j. (en ms)
 
+    public final long INTERVALLE_MAJ_MINI = 3000;   // Temps mini entre 2 m.a.j. (en ms)
+    public final long INTERVALLE_MAJ_MAX = 12*60*60*1000;   // Temps maxi entre 2 m.a.j. (en ms)
+
+    private final String ID_CHANNEL_NOTIFICATION = "location_channel";  // Id du channel de notification
+    private static final int ID_NOTIFICATION = 42;
     public static final int MSG_PREMIERE_CONNEXION = 0;
     public static final int MSG_DECONNEXION = 1;
     public static final int MSG_ARRET_SERVICE = 2;   // Demande l'arrêt du service
     public static final int MSG_MAJ_CONFIG = 3;   // Demande la mise à jour des paramètres de config
+    public static final int MSG_MAJ_NOTIFICATION = 4;
+    public static final int MSG_MAJ_TEXTE_NOTIFICATION = 5;
 
     // Références vers les objets utilisées par le service
     private NotificationManager mNotifManager;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private Context mContext;
+    protected PendingIntent contentIntent = null;   // Pour lancer l'appli si on appui sur sa notification
 
     // Configurations pour le fonctionnement du service
     protected Config cfg;
@@ -70,16 +78,12 @@ public class LocationUpdateService extends Service {
     // Variables utilisées par le service pour son fonctionnement
     private Location localisation; // Contient la localisation récupérée par le service
     public Position maPosition = null;  // Position de l'utilisateur
+    public String date_dernier_envoi = "jamais";   // Date du dernier envoi réussi vers le serveur
 
 
 
     public LocationUpdateService() {
         // Constructeur vide pour éviter les erreurs dans le manifest
-    }
-
-    public LocationUpdateService(Config cfg) {
-        // Constructeur vide pour éviter les erreurs dans le manifest
-        this.cfg = cfg;
     }
 
     /**
@@ -88,6 +92,7 @@ public class LocationUpdateService extends Service {
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
+            Notification notification ;
             switch (msg.what) {
                 case MSG_PREMIERE_CONNEXION:
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Connexion au service");
@@ -98,6 +103,33 @@ public class LocationUpdateService extends Service {
                 case MSG_ARRET_SERVICE:
                     if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Arrêt du service demandé");
                     stopLocationUpdateService();
+                    break;
+                case MSG_MAJ_CONFIG:
+                    if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Mise à jour des paramètres du service");
+                    //
+                    Bundle b = msg.getData();
+                    Log.d("LocationUpdateService", "NomUtilisateur = " + b.getString("nom") +
+                            " \tadresseServeur = " + b.getString("adresse") +
+                            " \tportServeur = " + b.getInt("port") +
+                            " \tintervalleEnvoiEnFond = " + b.getLong("intervalle_envoi_en_fond"));
+                    // Teste si l'intervalle entre 2 envoi a changé
+                    if (intervalleEnvoiEnFond != msg.getData().getLong("intervalle_envoi_en_fond")) {
+                        // Si oui, il faut arrêter les requête de maj de position, les reparamètrer
+                        // et relancer les requêtes
+                        fusedLocationClient.removeLocationUpdates(locationCallback);
+                        majConfigurationService(msg.getData());
+                        startLocationUpdates();
+                    } else {
+                        majConfigurationService(msg.getData());
+                    }
+                    break;
+                case MSG_MAJ_NOTIFICATION:
+                    majNotificationService();
+                    break;
+                case MSG_MAJ_TEXTE_NOTIFICATION:
+                    // Met à jour la notification avec le texte stockée dans la clé 'texte_notification'
+                    // des données jointes
+                    // TODO
                     break;
                 case 999:
                     int mValue = msg.arg1;
@@ -187,56 +219,54 @@ public class LocationUpdateService extends Service {
         return true;
     }
 
-    private void prepareForegroundNotification() {
-        // Création de la notification pour le service en premier plan
-        NotificationChannel channel = new NotificationChannel("location_channel", "Location Service", NotificationManager.IMPORTANCE_DEFAULT);
-        getSystemService(NotificationManager.class).createNotificationChannel(channel);
-        Notification notification = new NotificationCompat.Builder(this, "location_channel")
-                .setContentTitle("Suivi GPS en arrière-plan")
-                .setContentText("Localisation de groupe en arrière plan")
+    protected Notification creationNotificationService() {
+        Notification notification;
+        notification = new NotificationCompat.Builder(this, ID_CHANNEL_NOTIFICATION)
+                .setContentTitle(getString(R.string.titre_notif_service))
+                .setContentText(getString(R.string.texte_notif_date_dernier_envoi) + " "+ date_dernier_envoi)
                 .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(contentIntent)
                 .build();
-        if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Notification = " + notification);
-        /*
-        mNotifManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-        mNotifManager.notify(R.string.service_demarre, notification);
-        */
-        startForeground(1, notification);
+        return notification;
     }
 
     /**
-     * Show a notification while this service is running.
+     * Met à jour la notification du service en arrire plan avec la date de dernier envoi réussi
      */
-    /*
-    private void showNotification() {
-        // The PendingIntent to launch our activity if the user selects this notification
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                new Intent(this, MainActivity.class), PendingIntent.FLAG_MUTABLE);
-
-        // Set the info for the views that show in the notification panel.
-        NotificationChannel channel = new NotificationChannel("location_channel2", "Location Service2", NotificationManager.IMPORTANCE_DEFAULT);
-        getSystemService(NotificationManager.class).createNotificationChannel(channel);
-        Notification notification = new NotificationCompat.Builder(this, "location_channel2")
-                .setContentTitle("Suivi GPS en arrière-plan2")
+    protected void majNotificationService() {
+        // Met à jour la notification avec la date de dernier envoi des données
+        Notification notification;
+        notification = new NotificationCompat.Builder(this, ID_CHANNEL_NOTIFICATION)
+                .setContentTitle(getString(R.string.titre_notif_service))
+                .setContentText(getString(R.string.texte_notif_date_dernier_envoi) + " "+ date_dernier_envoi)
                 .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(contentIntent)
+                .setSilent(true)
                 .build();
-
-        // Send the notification.
-        // We use a string id because it is a unique number.  We use it later to cancel.
-        Log.d("LocationUpdateService", "Notification = " + notification);
-        mNotifManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-        mNotifManager.notify(R.string.service_demarre, notification);
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(ID_NOTIFICATION, notification);
     }
-*/
 
-    /** Démarre la demande de mise à jour périodique de la localisation
-     *
+    private void prepareForegroundNotification() {
+        // Création de la notification pour le service en premier plan
+        // Le PendingIntent sert à lancer notre application si l'utilisateur touche la notification
+        contentIntent = PendingIntent.getActivity(this, 0,
+                new Intent(this, MainActivity.class), PendingIntent.FLAG_MUTABLE);
+        NotificationChannel channel = new NotificationChannel(ID_CHANNEL_NOTIFICATION, "Location Service", NotificationManager.IMPORTANCE_DEFAULT);
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        Notification notification = creationNotificationService();
+        if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Notification = " + notification);
+        startForeground(ID_NOTIFICATION, notification);
+    }
+
+    /**
+     *  Démarre la demande de mise à jour périodique de la localisation
      */
     private void startLocationUpdates() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         LocationRequest.Builder request = new LocationRequest.Builder(Long.MAX_VALUE);
         //request.setMinUpdateDistanceMeters(1.0f); // Distance mini de m.a.j.
-        request.setMinUpdateIntervalMillis(INTERVALLE_MAJ_MINI); // 3 secondes
+        request.setMinUpdateIntervalMillis(intervalleEnvoiEnFond*1000); // secondes converties en ms
         request.setMaxUpdateDelayMillis(INTERVALLE_MAJ_MAX);
         request.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
 
@@ -248,11 +278,7 @@ public class LocationUpdateService extends Service {
                     if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("LocationUpdateService", "location == null à l'appel de 'onLocationResult'");
                     return;
                 }
-                if (maPosition != null) {
-                    maPosition.majPosition(location.getLatitude(), location.getLongitude());
-                } else {
-                    maPosition = new Position(nomUtilisateur,location.getLatitude(), location.getLongitude());
-                }
+                maPosition = new Position(nomUtilisateur,location.getLatitude(), location.getLongitude());
 
                 Log.d("LocationUpdateService", "Lat: " + location.getLatitude() + " Lng: " + location.getLongitude()
                 + " \tcfg=" + cfg + " \tmaPosition:" + maPosition.toString());
@@ -276,6 +302,8 @@ public class LocationUpdateService extends Service {
                                     String msg = Communication.CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE + maPosition.toString();
                                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Envoi de " + msg);
                                     out.println(msg);
+                                    date_dernier_envoi = new SimpleDateFormat("EEE d MMM HH'h'mm").format(new Date());
+                                    majNotificationService();
                                 }
                             }
                         } catch (Exception e) { //(IOException e)
@@ -324,6 +352,7 @@ public class LocationUpdateService extends Service {
     }
 
     public void stopLocationUpdateService() {
+        fusedLocationClient.removeLocationUpdates(locationCallback);
         stopForeground(true);
         stopSelf();
     }

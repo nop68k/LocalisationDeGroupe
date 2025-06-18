@@ -1,40 +1,24 @@
 package org.patarasprod.localisationdegroupe;
 
-import static androidx.core.content.ContextCompat.getSystemService;
-
-import android.content.Context;
-import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.PorterDuff;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.snackbar.Snackbar;
 
 import org.patarasprod.localisationdegroupe.databinding.FragmentParametresBinding;
 
-
-/**
- * A placeholder fragment containing a simple view.
- */
 public class Fragment_parametres extends Fragment {
 
     private FragmentParametresBinding binding;
@@ -61,6 +45,7 @@ public class Fragment_parametres extends Fragment {
         binding = FragmentParametresBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
+        // Création du listener pour la validation des champs (par touche entrée ou suivant)
         TextView.OnEditorActionListener traitementActions = new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -73,6 +58,8 @@ public class Fragment_parametres extends Fragment {
             }
         };
 
+        // Remplissage des champs avec le contenu enregistré dans la configuration et création
+        // du lien avec les listener (pour la validation et le changement de focus)
         cfg = ((MainActivity) requireActivity()).recupere_configuration();
         binding.zoneSaisieNom.setText(cfg.nomUtilisateur);
         binding.zoneSaisieNom.setOnFocusChangeListener(this::onFocusChange);
@@ -94,6 +81,7 @@ public class Fragment_parametres extends Fragment {
         // Met le commutateur de diffusion de la position dans le bon état
         binding.switchDiffuserMaPosition.setChecked(cfg.prefDiffuserMaPosition);
 
+        // Mise en place du listener pour réagir au changement d'état du commutateur "Diffuser ma position"
         binding.switchDiffuserMaPosition.setOnCheckedChangeListener((v, isChecked) -> {
             cfg.prefDiffuserMaPosition = isChecked;
             if (isChecked) {
@@ -108,11 +96,11 @@ public class Fragment_parametres extends Fragment {
         cfg.indicateurConnexionServeur = binding.indicateurConnexionServeur ;
         if (cfg.com != null) cfg.com.majIndicateurConnexion();
 
-        binding.champIntervalleMajService.setText(String.valueOf(cfg.intervalleEnvoiEnFond));
-        binding.champIntervalleMajService.setOnEditorActionListener(traitementActions);
-        binding.champIntervalleMajService.setOnFocusChangeListener(this::onFocusChange);
+        binding.champIntervalleEnvoiService.setText(String.valueOf(cfg.intervalleEnvoiService));
+        binding.champIntervalleEnvoiService.setOnEditorActionListener(traitementActions);
+        binding.champIntervalleEnvoiService.setOnFocusChangeListener(this::onFocusChange);
 
-        // Met le commutateur de diffusion en tâche de fond dans le bon état
+        // Mise en place du listener pour réagir au changement d'état du commutateur "Diffuser en tâche de fond"
         binding.switchDiffuserEnTacheDeFond.setChecked(cfg.prefDiffuserEnFond);
 
         binding.switchDiffuserEnTacheDeFond.setOnCheckedChangeListener((v, isChecked) -> {
@@ -132,15 +120,12 @@ public class Fragment_parametres extends Fragment {
         return root;
     }
 
-
-
     /**
      * Met à jour la configuration en fonction du contenu des champs de saisie et relance la
      * communication si les paramètres de nom, adresse ou port ont changés
      * provoque également un changement de configuration du service LocationUpdateService s'il y a
      * des changements le concernant.
      */
-
     public void majParametres() {
         try {
             String ancienNom = cfg.nomUtilisateur;
@@ -155,27 +140,38 @@ public class Fragment_parametres extends Fragment {
             cfg.adresse_serveur = String.valueOf(binding.champAdresseServeur.getText()).trim();
             cfg.port_serveur = Integer.parseInt(String.valueOf(binding.champPortServeur.getText()));
             if (cfg.port_serveur < 0 || cfg.port_serveur > 65535) {
-                binding.champPortServeur.setTextColor(0xFF0000);   // passe le texte en rouge
+                binding.champPortServeur.setTextColor(Color.RED);   // passe le texte en rouge
                 Snackbar.make(this.getView(), getString(R.string.msg_no_port_invalide), Snackbar.LENGTH_LONG).setAction("Action", null).show();
             } else {
                 binding.champPortServeur.setTextColor(couleursChamps);  // restaure la couleur d'origine du champ
             }
 
-            long ancienIntervalleEnvoiEnFond = cfg.intervalleEnvoiEnFond;
-            cfg.intervalleEnvoiEnFond = Long.parseLong(String.valueOf((binding.champIntervalleMajService)));
+            long ancienIntervalleEnvoiEnFond = cfg.intervalleEnvoiService;
+            cfg.intervalleEnvoiService = Long.parseLong(String.valueOf((binding.champIntervalleEnvoiService.getText())));
 
-            // Si les paramètres du serveur ou le nom ont changé, on relance la communication avec les nouveau paramètres
-            if ((!ancienAdrServeur.equals(cfg.adresse_serveur) || ancienPortServeur != cfg.port_serveur
-                    || !ancienNom.equals(cfg.nomUtilisateur)) && cfg.com != null) {
+            // Si les paramètres du serveur ou le nom ont changé et qu'il y a une communication demandée,
+            // on relance la communication avec les nouveaux paramètres
+            if ( ( (!ancienAdrServeur.equals(cfg.adresse_serveur)) || (ancienPortServeur != cfg.port_serveur)
+                    || (!ancienNom.equals(cfg.nomUtilisateur)))
+                    && cfg.prefDiffuserMaPosition && (cfg.com != null && cfg.accesService != null) ) {
                 if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
                         "Les paramètres ont changés et nécessitent un redémarrage de la communication");
                 cfg.com.stoppeDiffusionPositionAuServeur();
                 cfg.com.demarreDiffusionPositionAuServeur();
             }
-            if ((!ancienAdrServeur.equals(cfg.adresse_serveur) || ancienPortServeur != cfg.port_serveur
-                    || !ancienNom.equals(cfg.nomUtilisateur))
-                    ||ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiEnFond
-                    && cfg.com != null && cfg.accesService != null) {
+            Log.v("parametres",
+                    "Modif params - ancienAdrServeur.equals(cfg.adresse_serveur)" + ancienAdrServeur.equals(cfg.adresse_serveur) +
+            " \tancienPortServeur != cfg.port_serveur : " + (ancienPortServeur != cfg.port_serveur) +
+            " \tancienNom.equals(cfg.nomUtilisateur) : " + (ancienNom.equals(cfg.nomUtilisateur)) +
+            " \tancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService : " + (ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService) +
+            " \tcfg.prefDiffuserEnFond : " + cfg.prefDiffuserEnFond + " \tcfg.com=" + cfg.com +
+                    "\ncfg.accesService = " + cfg.accesService);
+            if ( ( (!ancienAdrServeur.equals(cfg.adresse_serveur)) || (ancienPortServeur != cfg.port_serveur)
+                    || (!ancienNom.equals(cfg.nomUtilisateur))
+                    || (ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService) )
+                    && cfg.prefDiffuserEnFond && (cfg.com != null && cfg.accesService != null) ) {
+                Log.v("parametres",
+                        "Lancement de la demande de mise à jour des paramètres du service");
                 cfg.accesService.majParametresService(cfg);  // Met à jour la configuration du service en arrière plan
             }
 

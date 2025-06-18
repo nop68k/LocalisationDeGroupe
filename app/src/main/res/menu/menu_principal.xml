@@ -14,6 +14,11 @@
         android:id="@+id/item_menu_reinitialiser_positions"
         android:title="@string/item_menu_reinitialiser_positions" />
     <item
+        android:id="@+id/item_menu_infos_debug"
+        android:checkable="true"
+        android:checked="false"
+        android:title="Infos debug" />
+    <item
         android:id="@+id/item_menu_a_propos"
         android:title="@string/item_menu_a_propos" />
     <item

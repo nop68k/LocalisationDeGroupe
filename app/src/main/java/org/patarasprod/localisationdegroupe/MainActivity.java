@@ -11,7 +11,6 @@ import android.view.MenuItem;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.navigation.ui.AppBarConfiguration;
 
 import org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding;
 import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
@@ -21,7 +20,7 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity implements Handler.Callback {
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     public static final int MSG_MAJ_VIEW = 1;   // Message pour mettre à jour la vue
-    private AppBarConfiguration appBarConfiguration;
+
     protected Config cfg;
     org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding binding;
 
@@ -35,23 +34,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         if (Config.DEBUG_LEVEL > 3) Log.v("mainActivity", "SetContentView du Oncreate de l'activité effectué avec succès");
         cfg.fragmentManager = getSupportFragmentManager();
 
-        //setSupportActionBar(binding.toolbar);
-
-/*
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-*/
         initialisations();
-
-        /*
-        Navigation.findNavController(this,
-                R.id.nav_host_fragment_content_main).popBackStack();
-        Navigation.findNavController(this,
-                R.id.nav_host_fragment_content_main).navigate(R.id.fragment_principal);
-
- */
-
     }
     private void initialisations() {
         // Instanciation de l'handler pour la communication
@@ -69,39 +52,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         cfg.accesService = new AccesService(cfg, getApplicationContext());
         // Et si c'est dans les préférences, on lance le service de localisation en continu
         if (cfg.prefDiffuserEnFond) cfg.accesService.demarrageService();
-
-        /*
-        LocationUpdateService serviceArrierePlan = new LocationUpdateService();
-        cfg.serviceArrierePlan = serviceArrierePlan;
-        cfg.serviceArrierePlan.test("message de test");
-        // D'abord on crée un intent
-        Intent serviceIntent = new Intent(this, LocationUpdateService.class);
-        // puis on prépare un bundle avec les données pour le serveur
-        Bundle donneesServeur = new Bundle();
-        donneesServeur.putString("nom", cfg.nomUtilisateur);
-        donneesServeur.putString("adresse", cfg.adresse_serveur);
-        donneesServeur.putInt("port", cfg.port_serveur);
-        serviceIntent.putExtra("data", donneesServeur);
-        ContextCompat.startForegroundService(this, serviceIntent);
-        cfg.accesService = new AccesService(cfg, getApplicationContext());
-
-        cfg.accesService.connexionService();
-
-        cfg.serviceArrierePlan.setCfg(cfg);
-        cfg.serviceArrierePlan.test("message de test après lancement");
-        */
     }
-
-    /** Fonction de mise à jour de l'UI
-     * Toutes les mise à jour de l'UI doivent absolument se faire sur le thread de l'UI (sinon ils
-     * déclenchent une exception et ne sont pas pris en compte). Cette méthode permet de créer un
-     * runnable qui s'exécutera sur le thread UI et fera la mise à jour voulue. Fonctionne quel que
-     * soit le thread appelant (même si c'est le thread UI).
-    **/
-    public void majUI(int elementsAMettreAJour) {
-        return;
-    }
-
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
@@ -112,7 +63,6 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                     if (cfg.recyclerViewPositions != null)
                         ( (RecyclerViewAdapterListeUtilisateurs) Objects.requireNonNull(cfg.recyclerViewPositions.getAdapter())).majListeUtilisateurs();
                     Objects.requireNonNull(cfg.fragment_infos.getView()).invalidate();   // Pour forcer la mise à jour de l'affichage
-                    //cfg.fragment_3.getView().requestLayout();
                     if (cfg.map != null) cfg.map.invalidate();
                 }
                 if (cfg.com != null) cfg.com.majIndicateurConnexion();
@@ -125,6 +75,15 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 cfg.com.demandeAutorisationInternet();
                 cfg.handler = new Handler();
                 cfg.handler.postDelayed(() -> cfg.localisation.getLocalisation(), 3000);
+                return true;
+            case R.id.item_menu_infos_debug:
+                if (cfg != null) {
+                    item.setChecked(!item.isChecked());   // inverse l'état de l'item
+                    cfg.itemMenuInfosDebug = item.isChecked();
+                    cfg.sauvegardePreference("itemMenuInfosDebug", cfg.itemMenuInfosDebug);
+                    if (cfg.texteInfos != null) cfg.texteInfos.setVisibility(
+                            cfg.itemMenuInfosDebug ? View.VISIBLE : View.GONE);
+                }
                 return true;
             case R.id.item_menu_a_propos:
                 AlertDialog.Builder builder = new AlertDialog.Builder(binding.getRoot().getContext());
@@ -140,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 builder.show();
                 return true;
             case R.id.item_menu_quitter:
-                // Stoppe le service de mise à jour
+                // Stoppe le service de mise à jour de la position en arrière plan
                 if (cfg.accesService != null) cfg.accesService.arreteService();
                 // Annule l'exécution différée s'il y en a une
                 if (cfg.handler != null) cfg.handler.removeCallbacksAndMessages(null);
@@ -191,7 +150,19 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         return true;
     }
 
-
+    /**
+     * Fonction pour demander la mise à jour par le thread UI d'une view pasée en argument
+     * @param viewAMettreAJour  View à mettre à jour
+     */
+    public void majUI(View viewAMettreAJour) {
+        if (cfg.handlerMainThread != null) {   // Si le handler n'est pas null
+            // On crée un message pour demander au thread principal de mettre à jour la vue
+            // parametres qui contient l'indicateur de connexion
+            Message msg = Message.obtain(cfg.handlerMainThread, MainActivity.MSG_MAJ_VIEW);
+            msg.obj = viewAMettreAJour;
+            cfg.handlerMainThread.sendMessage(msg);
+        }
+    }
 
     @Override
     public void onResume() {
@@ -210,17 +181,11 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         // Inflate the menu; this adds items to the action bar if it is present.
         if (Config.DEBUG_LEVEL > 4) Log.v("mainActivity","*****************CREATION MENU *****************");
         getMenuInflater().inflate(R.menu.menu_principal, menu);
+        super.onCreateOptionsMenu(menu);
+        // Met la checkbox de l'item de menu "Infos debug" dans le bon état
+        menu.findItem(R.id.item_menu_infos_debug).setChecked(cfg.itemMenuInfosDebug);
         return true;
     }
-/*
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
-    }
-
- */
 
     @Override
     public void onDestroy() {

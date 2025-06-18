@@ -69,7 +69,7 @@ public class FragmentCarte extends Fragment {
         cfg.map.setMultiTouchControls(true);   // Possibilité de zoomer
         mRotationGestureOverlay = new RotationGestureOverlay(cfg.map);
         mRotationGestureOverlay.setEnabled(true);
-        cfg.map.setMultiTouchControls(true);
+        //cfg.map.setMultiTouchControls(true);
         cfg.map.getOverlays().add(this.mRotationGestureOverlay);
 
         // Centrage et réglage du zoom

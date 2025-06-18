@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
@@ -19,19 +18,22 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Objects;
 
+/**
+ * Classe gérant les communications avec le serveur (sauf celle en tâche de fond gérée directement
+ * par le service).
+ */
 public class Communication {
 
     // Constantes pour la communication
-    static public final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "*";
-    static public final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = "$";
+    static public final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "%";
+    static public final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = ">";
     static public final String CARACTERE_COMMUNICATION_COMMANDE = "#";
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     Config cfg;
-    Socket socketClient;
-    PrintWriter out;
-    BufferedReader in;
+    Socket socketClient;    // Socket de connexion
+    PrintWriter out;        // flux de sortie (pour envoyer au serveur)
+    BufferedReader in;      // flux d'entrée (pour recevoir la réponse du serveur)
 
     public Communication(Config config) {
         cfg = config;
@@ -53,6 +55,7 @@ public class Communication {
                 return null;
             }
             if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
+            Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
             if (cfg.connectionAuServeurOK) return socketClient;
             // La connection n'était pas établie, donc on l'indique
             cfg.connectionAuServeurOK = true;
@@ -62,6 +65,7 @@ public class Communication {
             if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
                     "Problème lors de la création du socket client :");
             if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+            Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
             if (!cfg.connectionAuServeurOK) return null;
             // La connection était établie, donc on indique qu'elle est tombée
             cfg.connectionAuServeurOK = false;
@@ -83,6 +87,7 @@ public class Communication {
                 }
                 try {
                     socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
+                    if (socketClient == null) throw new IOException("Socket client null");
                     out = null;
                     in = null;
                     out = new PrintWriter(socketClient.getOutputStream(), true);
@@ -170,7 +175,8 @@ public class Communication {
         cfg.threadCommunication.start();
     }
 
-    /** Fonction pour envoyer sa position , récupérer la réponse, mettre à jour en conséquence
+    /**
+     * Fonction pour envoyer sa position , récupérer la réponse, mettre à jour en conséquence
      * et fermer la connexion (1 seul couple envoi/réception)
      */
     public void communique1FoisAvecServeur() {
@@ -185,6 +191,7 @@ public class Communication {
                 }
                 try {
                     socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
+                    if (socketClient == null) throw new IOException("Socket client null");
                     out = null;
                     in = null;
                     out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
@@ -255,10 +262,6 @@ public class Communication {
                     }
                 }
             }
-
-            public void stop() {
-                fermeture();
-            }
         });
         cfg.threadCommunication1Fois.start();
     }
@@ -301,7 +304,6 @@ public class Communication {
         }
     }
 
-
     public void demarreDiffusionPositionAuServeur() {
         // On commence par vérifier qu'il n'y a pas de communication en cours et la stopper si nécessaire
         stopThreadCommunication();
@@ -319,8 +321,9 @@ public class Communication {
         cfg.diffuserMaPosition = false;  // Ceci arrêtera le thread de communication avec le serveur
     }
 
-    /** Fonction qui s'assure périodiquement que la communication avec le serveur est bien
-     *  active
+    /**
+     * Fonction qui s'assure périodiquement que la communication avec le serveur est bien
+     * active
      **/
     public void diffusionPositionAuServeur() {
         if (cfg.diffuserMaPosition) {
@@ -380,39 +383,6 @@ public class Communication {
                 msg.obj = cfg.fragment_parametres.getView();
                 cfg.handlerMainThread.sendMessage(msg);
             }
-            /*
-            if (cfg.fragment_parametres != null) {
-                if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.v("Communication","AVANT requête post - communicationEnCours = " + cfg.communicationEnCours);
-                if (cfg.fragment_parametres.getView() != null) {
-                    Objects.requireNonNull(cfg.fragment_parametres.getView()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.v("Communication", "DANS requête post");
-                            if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
-                                // On est pas dans le thread UI et ce n'est pas normal !
-                                Log.v("Communication",
-                                "ERREUR : la mise à jour de l'indicateur de connexion ne se fait pas dans le thread UI !!!");
-                            }
-                            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                                Log.v("Communication", "Mise à jour de l'indicateur de connexion");
-                            cfg.fragment_parametres.getView().invalidate();
-                            cfg.fragment_parametres.getView().forceLayout();
-                            cfg.indicateurConnexionServeur.invalidate();
-                            cfg.indicateurConnexionServeur.forceLayout();
-                            if (cfg.fragment_infos != null && cfg.fragment_infos.getView() != null) {
-                                cfg.fragment_infos.getView().invalidate();
-                                cfg.fragment_infos.getView().requestLayout();
-                            }
-                        }
-                    });
-                }
-                //cfg.fragment_parametres.getView().requestLayout();
-            }
-            if (cfg.fragment_infos != null && cfg.fragment_infos.getView() != null) {
-                cfg.fragment_infos.getView().invalidate();
-                cfg.fragment_infos.getView().requestLayout();
-            }
-            */
         }
     }
 }

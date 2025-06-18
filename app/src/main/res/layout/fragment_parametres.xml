@@ -189,7 +189,7 @@
             app:layout_constraintTop_toBottomOf="@+id/switch_diffuser_en_tache_de_fond" />
 
         <EditText
-            android:id="@+id/champ_intervalle_maj_service"
+            android:id="@+id/champ_intervalle_envoi_service"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
