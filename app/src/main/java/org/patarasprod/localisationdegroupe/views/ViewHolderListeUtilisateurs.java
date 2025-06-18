@@ -27,6 +27,8 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
         this.textViewNom = itemView.findViewById(R.id.nom_utilisateur);
         this.textViewPosition = itemView.findViewById(R.id.position_utilisateur);
         this.textViewAnciennete = itemView.findViewById(R.id.anciennete_utilisateur);
+
+        // Gestion de l'appui court => Centre la carte sur cette personne et bascule sur l'onglet carte
         itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -34,6 +36,8 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
                 cfg.viewPager.setCurrentItem(1);   // Ramène à l'onglet 1 (carte)
             }
         });
+
+        // Festion de l'appui long : ouvre la position dans une appli externe de cartographie
         itemView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
@@ -58,7 +62,13 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
         });
     }
 
-    public void remplitUtilisateur(Position position, int numero){
+    /**
+     * Remplis les champs du viewHolder avec les informatios données dans l'argument position
+     * et met à jour ses attributs.
+     * @param position  objet Position contenant les données à jour
+     * @param numero    position (ordre) du viewHolder dans le recyclerView (la liste)
+     */
+    public void remplisUtilisateur(Position position, int numero){
         this.position = position;
         this.textViewNom.setText(position.nom);
         this.textViewPosition.setText(position.latitude + "N, " + position.longitude + "E");
@@ -67,9 +77,15 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
         //if (numero % 2 == 1) this.itemView.setBackgroundColor(Color.DKGRAY);
     }
 
+    /**
+     * Met à jour le ViewHolder avec les données stockées dans ses attributs
+     * @param numero   position (ordre) du viewHolder dans le recyclerView (la liste)
+     */
     public void majUtilisateur(int numero) {
         this.textViewNom.setText(this.position.nom);
         this.textViewPosition.setText(this.position.latitude + "N, " + this.position.longitude + "E");
-        this.textViewAnciennete.setText(this.position.dateMesure.toString());
+        this.textViewAnciennete.setText(this.position.getAnciennete());
     }
+
+
 }

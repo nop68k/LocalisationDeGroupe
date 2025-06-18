@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.patarasprod.localisationdegroupe.Config;
-import org.patarasprod.localisationdegroupe.MainActivity;
 import org.patarasprod.localisationdegroupe.Position;
 import org.patarasprod.localisationdegroupe.R;
 
@@ -20,7 +19,6 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
         private List<Position> listeUtilisateurs;
         Config cfg;
 
-        // CONSTRUCTOR
         public RecyclerViewAdapterListeUtilisateurs(List<Position> listeUtilisateurs, Config cfg) {
             this.listeUtilisateurs = listeUtilisateurs;
             this.cfg = cfg;
@@ -32,14 +30,12 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             Context context = parent.getContext();
             LayoutInflater inflater = LayoutInflater.from(context);
             View view = inflater.inflate(R.layout.item_liste_utilisateurs, parent, false);
-
             return new ViewHolderListeUtilisateurs(view, cfg);
         }
 
         @Override
         public void onBindViewHolder(ViewHolderListeUtilisateurs viewHolder, int positionDsListe) {
-            viewHolder.remplitUtilisateur(this.listeUtilisateurs.get(positionDsListe), positionDsListe);
-
+            viewHolder.remplisUtilisateur(this.listeUtilisateurs.get(positionDsListe), positionDsListe);
         }
 
         public void majListeUtilisateurs() {
@@ -50,7 +46,7 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             notifyDataSetChanged();
         }
 
-        // RETURN THE TOTAL COUNT OF ITEMS IN THE LIST
+        // Renvoie le nombre d'items dans la liste
         @Override
         public int getItemCount() {
             return this.listeUtilisateurs.size();

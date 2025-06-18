@@ -1,19 +1,5 @@
 <resources>
     <string name="app_name">Localisation de groupe</string>
-    <string name="action_settings">Settings</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
-
-    <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-
-
-    <string name="tab_text_1">Position</string>
-    <string name="tab_text_2">Carte</string>
-    <string name="tab_text_3">Infos</string>
     <string name="label_nom_ma_position">Ma position :</string>
     <string name="texte_label_nom_altitude">Altitude :</string>
     <string name="label_nom_angle_minutes_secondes">En angle/minutes/secondes</string>
@@ -22,10 +8,12 @@
     <string name="item_menu_actualiser">Rafraîchir</string>
     <string name="item_menu_autorisations">Redemander autorisations</string>
     <string name="item_menu_reinitialiser_positions">Réinitialiser les positions</string>
-    <string name="item_menu_parametres">Paramètres</string>
     <string name="item_menu_infos_debug">Infos debug</string>
     <string name="item_menu_a_propos">A propos</string>
     <string name="item_menu_quitter">Quitter</string>
+
+    <string name="indication_position_dans_liste_utilisateurs">%1$dN, %2$dE</string>
+
     <string name="label_nom">Nom :</string>
     <string name="label_diffuser_ma_position">Diffuser ma position</string>
     <string name="switch_diffuser_ma_position">Commutateur \"Diffuser ma position\"</string>

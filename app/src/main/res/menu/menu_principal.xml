@@ -17,7 +17,7 @@
         android:id="@+id/item_menu_infos_debug"
         android:checkable="true"
         android:checked="false"
-        android:title="Infos debug" />
+        android:title="@string/item_menu_infos_debug" />
     <item
         android:id="@+id/item_menu_a_propos"
         android:title="@string/item_menu_a_propos" />

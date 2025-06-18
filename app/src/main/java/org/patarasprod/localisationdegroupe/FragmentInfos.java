@@ -1,10 +1,12 @@
 package org.patarasprod.localisationdegroupe;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -22,7 +24,12 @@ import java.util.Objects;
 public class FragmentInfos extends Fragment {
 
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+    private final long DELAI_MAJ_UI_LISTE = 1*1000;   // Nombre de ms entre maj de l'UI de la liste
     private FragmentInfosBinding binding;
+
+    protected View mView ;  // référence sur la View du fragment Infos
+    protected Handler mHandler ;   // Handler pour programmer la maj de la liste régulièrement
+    protected Runnable routineMAJ;   // Routine de MAJ régulière de l'UI de la liste
     Config cfg;
     ArrayList<Position> listePositions = null;
     RecyclerViewAdapterListeUtilisateurs adapter = null;
@@ -45,6 +52,8 @@ public class FragmentInfos extends Fragment {
 
         binding = FragmentInfosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
+        mView = this.getView();
+        if (Config.DEBUG_LEVEL > 3) Log.v("infos", "root = mView : " + (root == mView));
 
         // Enregistre la référence vers le texte d'infos et fixe sa visibilité en fonction de
         // l'état de l'item de menu "Infos debug"
@@ -54,15 +63,38 @@ public class FragmentInfos extends Fragment {
         cfg.recyclerViewPositions = binding.listePositions;
         configureRecyclerView();
 
-        ((MainActivity) requireActivity()).majUI(this.getView());  // Met à jour la vue
+        ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
 
-        root.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
-            // Méthode appelée quand la visibilité sur cette vue change
+        // Création du handler pour programmer les maj régulières de la liste
+        mHandler = new Handler();
+
+        routineMAJ = new Runnable() {
+            public void run() {
+                // maj de l'UI
+                if (mView.getVisibility() == View.VISIBLE) {
+                    if (Config.DEBUG_LEVEL > 3) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
+                    ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
+                    mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);  // Reprogramme une maj
+                }
+            }
+        };
+
+        // Mise en place du listener pour réagir quand la vue Infos devient visible
+        mView.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
-            public void onSystemUiVisibilityChange(int visibility) {
-                if (Config.DEBUG_LEVEL > 0) Log.v("infos", "Changement de visibilité à : " + visibility);
+            public void onGlobalLayout () {
+                if (mView.getVisibility() == View.VISIBLE) {
+                    if (Config.DEBUG_LEVEL > 3) Log.v("infos", "La vue Infos est visible");
+                    mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);
+                } else {
+                    if (Config.DEBUG_LEVEL > 3)
+                        Log.v("infos", "La vue Infos N'est PAS visible");
+                    mHandler.removeCallbacksAndMessages(null);  // Stoppe les MAJ
+                }
             }
         });
+
         return root;
     }
 
