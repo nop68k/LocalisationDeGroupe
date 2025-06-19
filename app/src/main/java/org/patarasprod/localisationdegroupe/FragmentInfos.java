@@ -28,11 +28,12 @@ public class FragmentInfos extends Fragment {
     private FragmentInfosBinding binding;
 
     protected View mView ;  // référence sur la View du fragment Infos
-    protected Handler mHandler ;   // Handler pour programmer la maj de la liste régulièrement
-    protected Runnable routineMAJ;   // Routine de MAJ régulière de l'UI de la liste
+    protected Handler mHandler = null ;   // Handler pour programmer la maj de la liste régulièrement
+    protected Runnable routineMAJ = null;   // Routine de MAJ régulière de l'UI de la liste
     Config cfg;
     ArrayList<Position> listePositions = null;
     RecyclerViewAdapterListeUtilisateurs adapter = null;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -51,9 +52,7 @@ public class FragmentInfos extends Fragment {
         cfg.fragment_infos = this;
 
         binding = FragmentInfosBinding.inflate(inflater, container, false);
-        View root = binding.getRoot();
-        mView = this.getView();
-        if (Config.DEBUG_LEVEL > 3) Log.v("infos", "root = mView : " + (root == mView));
+        mView = binding.getRoot();
 
         // Enregistre la référence vers le texte d'infos et fixe sa visibilité en fonction de
         // l'état de l'item de menu "Infos debug"
@@ -65,48 +64,57 @@ public class FragmentInfos extends Fragment {
 
         ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
 
-        // Création du handler pour programmer les maj régulières de la liste
+        /* Création du handler pour programmer les maj régulières de la liste
+         Lorsque le fragment est affiché, la méthode onResume() est appelée qui va demander l'exécution
+         différée (PosteDelayed) de routineMAJ. Cette routine met à jour la liste utilisateur et
+         reprogramme une exécution de routineMAJ.
+         Cette boucle sera stoppée par la méthode onPause qui est appelée lorsque le fragment n'est plus affiché.
+         */
+        if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Création du handler pour la mise à jour");
         mHandler = new Handler();
 
         routineMAJ = new Runnable() {
             public void run() {
-                // maj de l'UI
-                if (mView.getVisibility() == View.VISIBLE) {
-                    if (Config.DEBUG_LEVEL > 3) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
+                // maj de l'UI si la view est bien visible
+                if (mView != null && mView.isShown() && adapter != null) {
+                    if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
+                    adapter.majListeUtilisateurs();
                     ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
                     mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);  // Reprogramme une maj
                 }
             }
         };
 
-        // Mise en place du listener pour réagir quand la vue Infos devient visible
-        mView.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout () {
-                if (mView.getVisibility() == View.VISIBLE) {
-                    if (Config.DEBUG_LEVEL > 3) Log.v("infos", "La vue Infos est visible");
-                    mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);
-                } else {
-                    if (Config.DEBUG_LEVEL > 3)
-                        Log.v("infos", "La vue Infos N'est PAS visible");
-                    mHandler.removeCallbacksAndMessages(null);  // Stoppe les MAJ
-                }
-            }
-        });
-
-        return root;
+        return mView;
     }
 
 
+    @Override
+    public void onPause() {
+        if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Methode onPause appelée");
+        if (mHandler != null) mHandler.removeCallbacksAndMessages(null);  // Stoppe les MAJ
+        super.onPause();
+    }
 
-    // 3 - Configure RecyclerView, Adapter, LayoutManager & glue it together
+    @Override
+    public void onResume() {
+        if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Methode onResume appelée");
+        if (adapter != null) adapter.majListeUtilisateurs();
+        if(mHandler != null && routineMAJ != null) mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);
+        super.onResume();
+    }
+
+
+    /**
+     * Crée et configure le RecycleViewAdapter qui gère la liste des utilisateurs affichée par le
+     * fragment.
+     */
     private void configureRecyclerView(){
-        // 3.1 - Reset list
+        // On récupère une référence sur la liste des posistions
         this.listePositions = cfg.gestionPositionsUtilisateurs.getListePositions();
-        // 3.2 - Create adapter passing the list of users
+        // On instancie le RecyclerViewAdapter en lui fournissant la liste des utilisateurs
         this.adapter = new RecyclerViewAdapterListeUtilisateurs(this.listePositions, this.cfg);
-        // 3.3 - Attach the adapter to the recyclerview to populate items
+        // On attache l'adapter au recyclerview
         cfg.recyclerViewPositions.setAdapter(this.adapter);
         // 3.4 - Set layout manager to position the items
         cfg.recyclerViewPositions.setLayoutManager(new LinearLayoutManager(getActivity()));
@@ -152,6 +160,9 @@ public class FragmentInfos extends Fragment {
 
     @Override
     public void onDestroyView() {
+        if (Config.DEBUG_LEVEL > 3)
+            Log.v("infos", "Méthode onDestroy appelée");
+        if (mHandler != null) mHandler.removeCallbacksAndMessages(null);  // Stoppe les MAJ
         super.onDestroyView();
         binding = null;
     }
