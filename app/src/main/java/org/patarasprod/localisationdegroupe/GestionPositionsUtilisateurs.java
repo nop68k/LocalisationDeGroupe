@@ -31,15 +31,18 @@ import java.util.Objects;
 public class GestionPositionsUtilisateurs {
 
     private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
-    public Map positions = new HashMap();   // Positions des utilisateurs
 
-    final String SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$*$";
+    // positions est un HashMap dont les clés sont les noms des utilisateurs (String) et les valeurs
+    // des objets Position
+    public Map<String,Position> positions = new HashMap<String,Position>();   // Positions des utilisateurs
+
+    public static final String SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$";
     final int TAILLE_LABEL_MARQUEUR = 45;  // Taille des label sous les marqueurs
     final static long DUREE_TRES_ANCIEN = 3600 * 24;  // Durée depuis laquelle on a pas vu la position
     final static int COULEUR_TRES_ANCIEN = Color.RED;
     final static long DUREE_ANCIEN = 60 * 10;
     final static int COULEUR_ANCIEN = Color.GRAY;
-    final static int COULEUR_RECENT = Color.BLACK;
+    final static int COULEUR_RECENT = 0xFF008000;  // vert foncé
 
     private final String NOM_FICHIER_SAUVEGARDE_POSITIONS = "positions.json";
 
@@ -59,7 +62,7 @@ public class GestionPositionsUtilisateurs {
 
     /** Ajoute ou insère une position dans la hashmap 'positions' à partir de la chaîne
      *  de caractère donnée en argument.
-     * Si la position est invalide, logge une erreur avec la chaine d'origine.
+     *  Si la position est invalide, logge une erreur avec la chaine d'origine.
      */
     private void ajouteOuMetAJourPosition(String chainePosition) {
         Position position = new Position(chainePosition);
@@ -75,7 +78,25 @@ public class GestionPositionsUtilisateurs {
         }
     }
 
-    /** Met à jour la hashmap des positions à partir de la réponse du serveur
+    /**
+     * Supprime la position dont le nom est donné en argument de la liste des positions suivies
+     * @param nom_cherche String contenant le nom de la position suivie
+     * @return renvoie true si la suppression a pu être faite et false sinon
+     */
+    public boolean supprimePosition(String nom_cherche) {
+        try {
+            positions.remove(nom_cherche);
+            return true;
+        } catch (Exception e) {
+            if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                Log.d("GestionPositionUtilisateurs", "Le nom " + nom_cherche + "n'a pas été "
+                        + "trouvé dans la liste lors de la recherche pour le supprimer !");
+            return false;
+        }
+    }
+
+    /**
+     * Met à jour la hashmap des positions à partir de la réponse du serveur
      * Celle-ci est sous la forme d'un dictionnaire python (entre accolades) avec des clés
      * représentant les noms des utilisateurs
      */
@@ -174,12 +195,11 @@ public class GestionPositionsUtilisateurs {
         int i = 0;
         String nomUtilisateur;
         String[] liste = new String[this.positions.size()];
-        Iterator<String> iter = positions.keySet().iterator();
-        while (iter.hasNext()) {
-            nomUtilisateur = iter.next();
+        for (String s : positions.keySet()) {
+            nomUtilisateur = s;
             liste[i] = Objects.requireNonNull(this.positions.get(nomUtilisateur)).toString();
             if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                Log.v("GestionPositionUtilisateurs","Elément n°" + i + " (" + nomUtilisateur + ") : " + liste[i]);
+                Log.v("GestionPositionUtilisateurs", "Elément n°" + i + " (" + nomUtilisateur + ") : " + liste[i]);
             i++;
         }
         return liste;
@@ -193,6 +213,7 @@ public class GestionPositionsUtilisateurs {
         while (iter.hasNext()) {
             nomUtilisateur = iter.next();
             position = (Position) this.positions.get(nomUtilisateur);
+            assert position != null;
             JSONObject objetPositionASauvegarder = position.toJSONObject();
             positionsASauvegarder.put(objetPositionASauvegarder);
         }
@@ -221,7 +242,7 @@ public class GestionPositionsUtilisateurs {
     }
 
     public void restaurePositionsAPartirDeLaSauvegarde() {
-        Map positionsLues = new HashMap();
+        //Map positionsLues = new HashMap();
         File fichier = new File(cfg.mainActivity.getBaseContext().getFilesDir(), NOM_FICHIER_SAUVEGARDE_POSITIONS);
         if (!fichier.exists()) {
             Log.v("GestionPositions", "Chargement des positions impossible car le fichier de sauvegarde n'existe pas");

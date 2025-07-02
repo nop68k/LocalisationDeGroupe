@@ -10,6 +10,7 @@
     <string name="item_menu_reinitialiser_positions">Réinitialiser les positions</string>
     <string name="item_menu_infos_debug">Infos debug</string>
     <string name="item_menu_a_propos">A propos</string>
+    <string name="titre_dialogue_a_propos">A propos...</string>
     <string name="item_menu_quitter">Quitter</string>
 
     <string name="indication_position_dans_liste_utilisateurs">%1$dN, %2$dE</string>
@@ -42,7 +43,22 @@
     <string name="description_champ_adresse_serveur">Adresse du serveur</string>
     <string name="msg_no_port_invalide">Le numéro de port doit être entre 0 et 65535 !</string>
     <string name="msg_position_copiee">Position copiée dans le presse-papier !</string>
-    <string name="texte_bouton_info">Appui court -> centrer la carte sur la personne\nAppui long -> appel programme externe</string>
+    <string name="texte_bouton_info">Appui court -> centrer la carte sur la personne\nAppui long -> menu contextuel</string>
     <string name="titre_notif_service">Suivi GPS en arrière plan</string>
     <string name="texte_notif_date_dernier_envoi">Dernier envoi réussi :</string>
+    <string name="centrer_la_carte_sur">Centrer la carte sur..</string>
+    <string name="ouvrir_dans_app_externe">Ouvrir dans app externe</string>
+    <string name="rentrer_les_coordonnees">Rentrer les coordonnées</string>
+    <string name="supprimer">Supprimer</string>
+    <string name="titre_saisie_coordonnees_GPS">Nouvelles coordonnées pour %1$s</string>
+    <string name="legende_saisie_coordonnees_GPS">Coordonnées GPS sous forme décimale séparées par une virgule avec ou sans indications N,S,E,W</string>
+    <string name="label_saisie_coordonnees_GPS">Coordonnées GPS :</string>
+    <string name="hint_saisie_coordonnees_GPS">43.123456,2.123456</string>
+    <string name="dialog_OK">Ok</string>
+    <string name="dialog_annuler">Annuler</string>
+    <string name="msg_coordonnes_rentrees_invalides">Les coordonnées proposées sont invalides !\nAucun changement n\'a été effectué.</string>
+    <string name="msg_suppression_position_nom">%1$s a été supprimé de la liste des positions suivies.</string>
+    <string-array name="case_a_cocher_suppression_serveur">
+        <item>Supprimer également sur le serveur</item>
+    </string-array>
 </resources>

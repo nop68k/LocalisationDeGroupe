@@ -7,7 +7,7 @@ import logging
 import time
 
 ################################################################################
-# Programme serveur pour l'application "Localisation de groupe" v1.5
+# Programme serveur pour l'application "Localisation de groupe"
 #
 # Ce script python est fait pour tourner en permanence sur un serveur avec
 # lequel il n'y a pas d'interaction. Pour l'arrêter il faut créer un fichier
@@ -26,7 +26,7 @@ import time
 #
 ################################################################################
 
-PORT = 7777        # Numéro du port utilisé pour la communication
+PORT = 7777       # Numéro du port utilisé pour la communication
 TIMEOUT = 120.0    # Temps d'attente maxi de la carte réseau pr ouvrir socket
 TAILLE_BUFFER = 4096
 NOM_FICHIER_SAUVEGARDE = "sauvegarde_positions.json"
@@ -35,18 +35,22 @@ NOM_FICHIER_JOURNAL = 'journal.log'
 NOM_ANONYME = "ANONYME"  #  Nom considéré comme anonyme et donc non enregistré
 REPONSE_SERVEUR_NOM_ANONYME = "Le nom utilisé est invalide"
 LIMITE_NB_MSG_VIDES = 30  # A partir de cette quantité de messages vides reçus,
-                          # on ferme le thread
+# on ferme le thread
 
 # Caractere par lequel commence l'envoi du client pour savoir le type de
 # comportement adopter
 CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = '%'
 CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = '>'
-CARACTERE_COMMUNICATION_COMMANDE = '#'    # Non encore implémenté
+CARACTERE_COMMUNICATION_COMMANDE = '^'
 
-SEPARATEUR_CHAMPS = "||"
+SEPARATEUR_CHAMPS = "|"
 SEPARATEUR_LATITUDE_LONGITUDE = ';'
-SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$*$"
-NIVEAU_DE_LOG = logging.ERROR    # Niveau de détail du log
+SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$"
+
+COMMANDE_SUPPRESSION = "SUPPR"
+
+
+NIVEAU_DE_LOG = logging.INFO    # Niveau de détail du log
 PERIODICITE_AFFICHAGE = 60*60   # Nombre de secondes avant affichage des infos
 
 # Dictionnaire des fils d'exécutions
@@ -60,7 +64,7 @@ threads = {}   # Dictionnaire des threads
 # personnes/lieux et les valeurs sont les positions sous la forme d'une chaîne
 # contenant les coordonnées GPS suivies du séparateur de champ puis de la
 # dernière heure de mise à jour (au format UTC)
-positions = {"Maison":"-32.0509067;115.7716450" + SEPARATEUR_CHAMPS + "2025-06-05T09:13:55.866Z"}
+positions = {"Kilomètre Zéro":"48.8534;2.3488" + SEPARATEUR_CHAMPS + "2025-06-05T09:13:55.866Z"}
 
 # Mise en place du journal de log
 logging.basicConfig(filename=NOM_FICHIER_JOURNAL, level=NIVEAU_DE_LOG,
@@ -134,20 +138,17 @@ def gestion_1_client(client, positions, numero_thread:int):
     while not fin_thread:
         try:
             msgClient = client.recv(TAILLE_BUFFER)  # Récupère le message envoyé par le client
-            print(f"{time.time()}-Message brut (longueur {len(msgClient)}) : {msgClient}")
             if len(msgClient) == 0:   # Si le message reçu est vide
                 nb_msg_vides += 1
-                if nb_msg_vides > LIMITE_NB_MSG_VIDES:   # Si on dépasse la limite
-                    fin_tread = True                     # il vaut mieux fermer le thread
-                    logger.warning(f"Thread {numero_thread} abandonné suite à " +\
-                                   f"{nb_msg_vides} messages vides reçus")
+                if nb_msg_vides > LIMITE_NB_MSG_VIDES:    # Si on dépasse la limite
+                    fin_thread = True                     # il vaut mieux fermer le thread
                 continue              # on passe directement au suivant
             msgClient = msgClient.decode('utf-8')  # Transforme le flux d'octet en chaîne pour l'afficher
             logger.debug(f"Message reçu du client : '{msgClient}'")
             if msgClient[0] == CARACTERE_COMMUNICATION_BIDIRECTIONNELLE or \
-               msgClient[0] == CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE:
-                if premier_nom_msg_client(msgClient[1:]) == "" or  \
-                   premier_nom_msg_client(msgClient[1:]).upper() == NOM_ANONYME:
+                    msgClient[0] == CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE:
+                if premier_nom_msg_client(msgClient[1:]) == "" or \
+                        premier_nom_msg_client(msgClient[1:]).upper() == NOM_ANONYME:
                     logger.info(f"Connexion avec nom anonyme '{premier_nom_msg_client(msgClient[1:])}' - Dialogue terminé")
                     client.send(bytes(REPONSE_SERVEUR_NOM_ANONYME, 'utf-8'))
                     continue     # Reprend à l'écoute du client
@@ -167,7 +168,15 @@ def gestion_1_client(client, positions, numero_thread:int):
                 fin_thread = True
                 # En principe c'est une commande
                 if msgClient[0] == CARACTERE_COMMUNICATION_COMMANDE:
-                    print("Les commandes se sont pas gérées par cette version du serveur !!!")
+                    commande, args = msgClient[1:].replace('\n','').split(SEPARATEUR_CHAMPS)
+                    if commande == COMMANDE_SUPPRESSION:
+                        logger.info(f"Commande pour supprimer l'élément {args}"+ \
+                                    f" reçue de {client.getpeername()}")
+                        if args in positions:
+                            del(positions[args])
+                    else:
+                        logger.error(f"Commande inconnue : {msgClient[1:]} reçue" \
+                                     + f" de {client.getpeername()[0]}")
                 else:
                     logger.critical(f"Caractere de début non géré dans le message : {msgClient}")
         except Exception as e:

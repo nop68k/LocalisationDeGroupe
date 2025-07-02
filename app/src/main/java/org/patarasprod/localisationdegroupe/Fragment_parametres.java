@@ -21,6 +21,11 @@ import org.patarasprod.localisationdegroupe.databinding.FragmentParametresBindin
 
 public class Fragment_parametres extends Fragment {
 
+    // Caractères interdits dans le nom de l'utilisateur
+    public static final String CARACTERES_INTERDITS = Communication.CARACTERE_COMMUNICATION_BIDIRECTIONNELLE
+            + Communication.CARACTERE_COMMUNICATION_COMMANDE + Communication.CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE
+            + GestionPositionsUtilisateurs.SEPARATEUR_ELEMENTS_REPONSE_SERVEUR + Position.SEPARATEUR_CHAMPS
+            + Position.SEPARATEUR_LATITUDE_LONGITUDE + "\n\t\\";
     private FragmentParametresBinding binding;
     Config cfg;
     private ColorStateList couleursChamps; // Couleurs utilisées par les champs de saisie (pour pouvoir les restaurer)
@@ -121,6 +126,30 @@ public class Fragment_parametres extends Fragment {
     }
 
     /**
+     * Renvoi le nom d'utilisateur validé en ayant retiré les espaces avant et après ainsi que les
+     * caractères non autorisés (dans la chaine constante CARACTERES_INTERDITS) afin d'éviter que
+     * cela gène la transmission en se confondant avec les délimiteurs de champ.
+     * @param nomAValider String chaîne contenant le nom brut
+     * @return String nom validé
+     */
+    private String validationNom(String nomAValider) {
+        nomAValider = nomAValider.trim();   // trim() permet de supprimer les espaces avant et après
+        String nomValide = "";
+        boolean valide = true;
+        for (int i = 0 ; i < nomAValider.length() ; i++) {
+            valide = true;
+            for (int j = 0 ; j < CARACTERES_INTERDITS.length() ; j++) {
+                if (nomAValider.charAt(i) == CARACTERES_INTERDITS.charAt(j)) {
+                    valide = false;
+                    break;
+                }
+            }
+            if (valide) nomValide += nomAValider.charAt(i);
+        }
+        return nomValide;
+    }
+
+    /**
      * Met à jour la configuration en fonction du contenu des champs de saisie et relance la
      * communication si les paramètres de nom, adresse ou port ont changés
      * provoque également un changement de configuration du service LocationUpdateService s'il y a
@@ -129,8 +158,8 @@ public class Fragment_parametres extends Fragment {
     public void majParametres() {
         try {
             String ancienNom = cfg.nomUtilisateur;
-            // trim() permet de supprimer les espaces avant et après
-            cfg.nomUtilisateur = String.valueOf(binding.zoneSaisieNom.getText()).trim();
+            cfg.nomUtilisateur = validationNom(String.valueOf(binding.zoneSaisieNom.getText()));
+            binding.zoneSaisieNom.setText(cfg.nomUtilisateur);   // Met à jour le champ avec le nom corrigé
             cfg.maPosition.majPosition(cfg.nomUtilisateur); // Met à jour le nom d'utilisateur de la positions
             cfg.intervalleMesureSecondes = Long.parseLong(String.valueOf(binding.champIntervalleMesure.getText()));
             cfg.intervalleMajSecondes = Long.parseLong(String.valueOf(binding.champIntervalleMaj.getText()));
@@ -159,13 +188,6 @@ public class Fragment_parametres extends Fragment {
                 cfg.com.stoppeDiffusionPositionAuServeur();
                 cfg.com.demarreDiffusionPositionAuServeur();
             }
-            Log.v("parametres",
-                    "Modif params - ancienAdrServeur.equals(cfg.adresse_serveur)" + ancienAdrServeur.equals(cfg.adresse_serveur) +
-            " \tancienPortServeur != cfg.port_serveur : " + (ancienPortServeur != cfg.port_serveur) +
-            " \tancienNom.equals(cfg.nomUtilisateur) : " + (ancienNom.equals(cfg.nomUtilisateur)) +
-            " \tancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService : " + (ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService) +
-            " \tcfg.prefDiffuserEnFond : " + cfg.prefDiffuserEnFond + " \tcfg.com=" + cfg.com +
-                    "\ncfg.accesService = " + cfg.accesService);
             if ( ( (!ancienAdrServeur.equals(cfg.adresse_serveur)) || (ancienPortServeur != cfg.port_serveur)
                     || (!ancienNom.equals(cfg.nomUtilisateur))
                     || (ancienIntervalleEnvoiEnFond != cfg.intervalleEnvoiService) )

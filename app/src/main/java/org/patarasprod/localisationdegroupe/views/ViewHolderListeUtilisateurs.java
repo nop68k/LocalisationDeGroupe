@@ -1,32 +1,44 @@
 package org.patarasprod.localisationdegroupe.views;
 
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
-import android.net.Uri;
-import android.util.Log;
+import android.content.Context;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.patarasprod.localisationdegroupe.Config;
+import org.patarasprod.localisationdegroupe.FragmentInfos;
 import org.patarasprod.localisationdegroupe.Position;
 import org.patarasprod.localisationdegroupe.R;
 
-
-public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
+/**
+ * Classe gérant les items de la liste des noms dans la vue Infos (contenus dans le recyclerview)
+ * Cette classe étend ViewHolder et implémente View.OnCreateContextMenuListener pour pouvoir
+ * afficher un menu contextuel sur l'appui long d'un item.
+ */
+public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
 
     //@BindView(R.id.item_liste_utilisateurs)  TextView textView;
-    TextView textViewNom;
-    TextView textViewPosition;
-    TextView textViewAnciennete;
-    Position position;
+    private     TextView        textViewNom;
+    private     TextView        textViewPosition;
+    private     TextView        textViewAnciennete;
+    private     Position        position;
+    private     MenuInflater    menuInflater;
+    protected   FragmentInfos.PasseurDeReference referenceVH;       // Pour les menus contextuels
 
-    public ViewHolderListeUtilisateurs(View itemView, Config cfg) {
+    public ViewHolderListeUtilisateurs(View itemView, Config cfg, MenuInflater m, FragmentInfos.PasseurDeReference referenceVH) {
         super(itemView);
         this.textViewNom = itemView.findViewById(R.id.nom_utilisateur);
         this.textViewPosition = itemView.findViewById(R.id.position_utilisateur);
         this.textViewAnciennete = itemView.findViewById(R.id.anciennete_utilisateur);
+        this.menuInflater = m;
+        this.referenceVH = referenceVH;
+
+        // L'appui long ouvre un menu contextuel
+        //itemView.setLongClickable(true);
+        itemView.setOnCreateContextMenuListener(this);
 
         // Gestion de l'appui court => Centre la carte sur cette personne et bascule sur l'onglet carte
         itemView.setOnClickListener(new View.OnClickListener() {
@@ -34,30 +46,6 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
             public void onClick(View view) {
                 cfg.mapController.setCenter(position.getGeoPoint()); // Centre sur cette position
                 cfg.viewPager.setCurrentItem(1);   // Ramène à l'onglet 1 (carte)
-            }
-        });
-
-        // Festion de l'appui long : ouvre la position dans une appli externe de cartographie
-        itemView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View view) {
-                // Build the intent.
-                Uri location = Uri.parse("geo:" + position.latitude + "," +
-                        position.longitude);
-                Intent mapIntent = new Intent(Intent.ACTION_VIEW, location);
-                // Try to invoke the intent.
-                try {
-                    if (Config.DEBUG_LEVEL > 2) Log.v("ViewHolderUtilisateurs",
-                      "Appel d'une appli externe sur l'uri : "+"geo:"+
-                           String.valueOf(position.latitude).replace(',','.') + "," +
-                           String.valueOf(position.longitude).replace(',','.'));
-                    cfg.mainActivity.startActivity(mapIntent);
-                } catch (ActivityNotFoundException e) {
-                    Log.v("ViewHolderUtilisateurs", "Activité introuvable pour voir une uri de type geo");
-                    // Define what your app should do if no activity can handle the intent.
-                    return false;  // click non traité
-                }
-                return true;  // click traité
             }
         });
     }
@@ -87,5 +75,23 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder {
         this.textViewAnciennete.setText(this.position.getAnciennete());
     }
 
+    public void onCreateView() {
+
+    }
+
+    public Position getPos() {
+        return this.position;
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenu.ContextMenuInfo menuInfo) {
+        // TODO Auto-generated method stub
+        Context context = v.getContext();
+        menuInflater.inflate(R.menu.menu_contextuel_noms, menu);
+        // On fixe la référence à notre ViewHolder pour que la méthode onContextItemSelected du
+        // fragment Infos puisse savoir quel élément a été cliqué
+        referenceVH.setReference(this);
+    }
 
 }

@@ -3,25 +3,31 @@ package org.patarasprod.localisationdegroupe.views;
 import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.patarasprod.localisationdegroupe.Config;
+import org.patarasprod.localisationdegroupe.FragmentInfos;
 import org.patarasprod.localisationdegroupe.Position;
 import org.patarasprod.localisationdegroupe.R;
 
 import java.util.List;
 
 public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<ViewHolderListeUtilisateurs> {
+        private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
+        private       List<Position>    listeUtilisateurs;
+        protected     MenuInflater      menuInflater;
+        protected     Config            cfg;
+        protected     FragmentInfos.PasseurDeReference referenceVH;       // Pour les menus contextuels
 
-        private List<Position> listeUtilisateurs;
-        Config cfg;
-
-        public RecyclerViewAdapterListeUtilisateurs(List<Position> listeUtilisateurs, Config cfg) {
+        public RecyclerViewAdapterListeUtilisateurs(List<Position> listeUtilisateurs, Config cfg, MenuInflater m, FragmentInfos.PasseurDeReference referenceVH) {
             this.listeUtilisateurs = listeUtilisateurs;
             this.cfg = cfg;
+            this.menuInflater = m;
+            this.referenceVH = referenceVH;
         }
 
         @Override
@@ -30,7 +36,7 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             Context context = parent.getContext();
             LayoutInflater inflater = LayoutInflater.from(context);
             View view = inflater.inflate(R.layout.item_liste_utilisateurs, parent, false);
-            return new ViewHolderListeUtilisateurs(view, cfg);
+            return new ViewHolderListeUtilisateurs(view, cfg, menuInflater, referenceVH);
         }
 
         @Override
@@ -40,9 +46,9 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
 
         public void majListeUtilisateurs() {
             listeUtilisateurs.clear();
-            if (Config.DEBUG_LEVEL > 3) Log.v("RecyclerViewAdapter", "Liste vidée : " + listeUtilisateurs);
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("RecyclerViewAdapter", "Liste vidée : " + listeUtilisateurs);
             listeUtilisateurs = cfg.gestionPositionsUtilisateurs.getListePositions();
-            if (Config.DEBUG_LEVEL > 3) Log.v("RecyclerViewAdapter", "Liste maj : " + listeUtilisateurs);
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("RecyclerViewAdapter", "Liste maj : " + listeUtilisateurs);
             notifyDataSetChanged();
         }
 
@@ -52,3 +58,5 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             return this.listeUtilisateurs.size();
         }
     }
+
+

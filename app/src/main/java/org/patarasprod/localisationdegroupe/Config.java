@@ -31,10 +31,10 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
  */
 public class Config {
 
-    public static int DEBUG_LEVEL = 0; // Niveau d'expressivité des messages de debug (0 = aucun message)
+    public static int DEBUG_LEVEL = 3; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 2.0.6\n(Juin 2025)";
+            "Version 2.1.3\n(Juillet 2025)";
 
     protected Context contexte;
     public FragmentManager fragmentManager;

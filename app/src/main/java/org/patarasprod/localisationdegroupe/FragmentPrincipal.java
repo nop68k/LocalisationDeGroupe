@@ -89,7 +89,7 @@ public class FragmentPrincipal extends NavHostFragment {
         if (Config.DEBUG_LEVEL > 3) Log.v("Fragment principal","Désactivation du swipe");
         viewPager.setUserInputEnabled(false);
 
-        // Boputon flottant (Floating Action Button) pour centrer sur notre position
+        // Bouton flottant (Floating Action Button) pour centrer sur notre position
         binding.fabCentrerSurMaPosition.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

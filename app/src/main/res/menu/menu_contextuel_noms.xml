@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menuitem_centrer_sur"
+        android:title="@string/centrer_la_carte_sur" />
+    <item
+        android:id="@+id/menuitem_ouvrir_ds_app_externe"
+        android:title="@string/ouvrir_dans_app_externe" />
+    <item
+        android:id="@+id/menuitem_rentrer_coordonnees"
+        android:title="@string/rentrer_les_coordonnees" />
+    <item
+        android:id="@+id/menuitem_supprimer_nom"
+        android:title="@string/supprimer" />
+</menu>

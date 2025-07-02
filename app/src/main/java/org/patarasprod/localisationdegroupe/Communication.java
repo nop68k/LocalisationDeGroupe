@@ -26,9 +26,11 @@ import java.net.Socket;
 public class Communication {
 
     // Constantes pour la communication
-    static public final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "%";
-    static public final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = ">";
-    static public final String CARACTERE_COMMUNICATION_COMMANDE = "#";
+    public static final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "%";
+    public static final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = ">";
+    public static final String CARACTERE_COMMUNICATION_COMMANDE = "^";
+
+    public static final String SUPPRIMER = "SUPPR";
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     Config cfg;
     Socket socketClient;    // Socket de connexion
@@ -42,18 +44,15 @@ public class Communication {
 
     /**
      * Crée un socket client et met à jour l'indicateur de connexion au serveur si besoin
+     *
      * @param adresse String : adresse du serveur
-     * @param port Int : port où joindre le serveur
+     * @param port    Int : port où joindre le serveur
      * @return null ou objet Socket si le socket a pu être crée
      */
     public Socket creationSocketClient(String adresse, int port) {
-        if (Config.DEBUG_LEVEL > 4) Log.v("Communication","Création du socket client");
+        if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Création du socket client");
         try {
             Socket socketClient = new Socket(adresse, port);
-            if (socketClient == null) {
-                Log.v("Communication","Problème à la création du socket (null)");
-                return null;
-            }
             if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
             Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
             if (cfg.connectionAuServeurOK) return socketClient;
@@ -64,7 +63,7 @@ public class Communication {
         } catch (Exception e) { //(IOException e) {
             if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
                     "Problème lors de la création du socket client :");
-            if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+            if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication", e.toString());
             Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
             if (!cfg.connectionAuServeurOK) return null;
             // La connection était établie, donc on indique qu'elle est tombée
@@ -82,7 +81,8 @@ public class Communication {
                 cfg.communicationEnCours = false;
                 // Si on ne connaît pas notre position, on ne démarre pas la communication et on sort tout de suite
                 if (cfg.maPosition == null) {
-                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Communication non initiée car notre position est inconnue");
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                        Log.v("Communication", "Communication non initiée car notre position est inconnue");
                     return;
                 }
                 try {
@@ -96,54 +96,59 @@ public class Communication {
                 } catch (Exception e) { //(IOException e) {
                     if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
                             "Problème lors de la création du socket client :");
-                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                        Log.v("Communication", e.toString());
                     fermeture();
                     return;
                 }
                 if (in == null || out == null) {
-                    Log.v("Communication","Problème à la création des flux entrants et sortant du socket"
-                    + "\nin = " + in + " \tout = " + out);
+                    Log.v("Communication", "Problème à la création des flux entrants et sortant du socket"
+                            + "\nin = " + in + " \tout = " + out);
                     fermeture();
                     return;
                 }
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                    Log.v("Communication","-------Démarrage de la communication bi-directionelle");
+                    Log.v("Communication", "-------Démarrage de la communication bi-directionelle");
                 cfg.reponse = "";
                 boolean erreurCommunication = false;
                 cfg.communicationEnCours = true;
                 while (cfg.reponse != null && cfg.diffuserMaPosition && !erreurCommunication &&
                         !cfg.reponse.equals("FIN")) {
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                        Log.v("Communication","Envoi du message : " +
+                        Log.v("Communication", "Envoi du message : " +
                                 CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                     // Envoi de la position au serveur
                     out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                     // Récupération de la réponse
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                        Log.v("Communication","Lecture de la réponse du serveur sur " + in.toString());
+                        Log.v("Communication", "Lecture de la réponse du serveur sur " + in.toString());
                     try {
                         cfg.reponse = in.readLine();
                         if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                            Log.v("Communication","Réponse du serveur : " + cfg.reponse);
+                            Log.v("Communication", "Réponse du serveur : " + cfg.reponse);
                         // Attente avant de recommencer le dialogue
                         if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                            Log.v("Communication","Attente pendant " + cfg.intervalleMajSecondes + " s");
+                            Log.v("Communication", "Attente pendant " + cfg.intervalleMajSecondes + " s");
                         traitementReponse(cfg.reponse);
                         if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
-                        android.os.SystemClock.sleep(cfg.intervalleMajSecondes*1000);
+                        android.os.SystemClock.sleep(cfg.intervalleMajSecondes * 1000);
                     } catch (Exception e) {
                         cfg.reponse = cfg.ERREUR_READLINE_SOCKET_DISTANT;
                         erreurCommunication = true;
                     }
                 }
-                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","-------Fermeture de la communication bi-directionelle");
-                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Communication","-------Dernière réponse du serveur : "+cfg.reponse);
+                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE)
+                    Log.v("Communication", "-------Fermeture de la communication bi-directionelle");
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                    Log.v("Communication", "-------Dernière réponse du serveur : " + cfg.reponse);
                 cfg.communicationEnCours = false;
                 fermeture();
             }
+
             public void traitementReponse(String reponse) {
                 if (cfg.reponse != null) {
-                    if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE) cfg.gestionPositionsUtilisateurs.majPositions(reponse);
+                    if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE)
+                        cfg.gestionPositionsUtilisateurs.majPositions(reponse);
                     if (cfg.fragment_infos != null) {
                         cfg.fragment_infos.majTexteInfos();
                     }
@@ -186,7 +191,8 @@ public class Communication {
             public void run() {
                 // Si on ne connaît pas notre position, on ne démarre pas la communication et on sort tout de suite
                 if (cfg.maPosition == null) {
-                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Com1fois : Communication non initiée car notre position est inconnue");
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                        Log.v("Communication", "Com1fois : Communication non initiée car notre position est inconnue");
                     return;
                 }
                 try {
@@ -196,16 +202,18 @@ public class Communication {
                     in = null;
                     out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
                     in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
-                    if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Com1fois : Création réussie des 'in' et 'out' du socket");
+                    if (Config.DEBUG_LEVEL > 4)
+                        Log.v("Communication", "Com1fois : Création réussie des 'in' et 'out' du socket");
                 } catch (Exception e) { //(IOException e) {
                     if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
                             "Com1fois : Problème lors de la création du socket client :");
-                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",e.toString());
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                        Log.v("Communication", e.toString());
                     fermeture();
                     return;
                 }
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                    Log.v("Communication","Com1fois : envoi du message avec la position " +
+                    Log.v("Communication", "Com1fois : envoi du message avec la position " +
                             CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
                 // Envoi de la position au serveur
                 try {
@@ -215,17 +223,18 @@ public class Communication {
                     //out=null;
                     // Récupération de la réponse
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                        Log.v("Communication","Com1fois : Lecture de la réponse du serveur sur " + in.toString());
+                        Log.v("Communication", "Com1fois : Lecture de la réponse du serveur sur " + in.toString());
                     cfg.reponse = "";
                     cfg.reponse = in.readLine();
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
-                        Log.v("Communication","Com1fois : Réponse du serveur : " + cfg.reponse);
+                        Log.v("Communication", "Com1fois : Réponse du serveur : " + cfg.reponse);
                     traitementReponse(cfg.reponse);
                     if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
                 } catch (Exception e) {
                     cfg.reponse = cfg.ERREUR_READLINE_SOCKET_DISTANT;
                 }
-                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","Com1fois : -------Fermeture de la communication bi-directionelle");
+                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE)
+                    Log.v("Communication", "Com1fois : -------Fermeture de la communication bi-directionelle");
                 fermeture();
                 try {
                     Thread.sleep(3000);
@@ -236,7 +245,8 @@ public class Communication {
 
             public void traitementReponse(String reponse) {
                 if (cfg.reponse != null) {
-                    if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE) cfg.gestionPositionsUtilisateurs.majPositions(reponse);
+                    if (cfg.reponse.length() > cfg.TAILLE_MINI_REPONSE_COMPLETE)
+                        cfg.gestionPositionsUtilisateurs.majPositions(reponse);
                     if (cfg.fragment_infos != null) {
                         cfg.fragment_infos.majTexteInfos();
                     }
@@ -270,19 +280,21 @@ public class Communication {
         Context contexte = cfg.mainActivity.getBaseContext();
         if (ActivityCompat.checkSelfPermission(contexte, Manifest.permission.INTERNET)
                 != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(contexte, Manifest.permission.ACCESS_NETWORK_STATE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions((Activity)contexte,
+                ActivityCompat.checkSelfPermission(contexte, Manifest.permission.ACCESS_NETWORK_STATE)
+                        != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions((Activity) contexte,
                     new String[]{Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.INTERNET}, 2);
             if (ActivityCompat.checkSelfPermission(contexte, Manifest.permission.INTERNET)
                     != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(contexte, Manifest.permission.ACCESS_NETWORK_STATE)
                             != PackageManager.PERMISSION_GRANTED) {
-                if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication","Autorisation internet NON accordée");
+                if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
+                    Log.v("Communication", "Autorisation internet NON accordée");
                 return false;
             }
         }
-        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("Communication","Autorisation internet accordée");
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+            Log.v("Communication", "Autorisation internet accordée");
         return true;
     }
 
@@ -299,7 +311,7 @@ public class Communication {
                     majIndicateurConnexion();
                 }
             } catch (InterruptedException e) {
-                Log.v("Communication","EXCEPTION lors de l'attente de la fin du thread communication");
+                Log.v("Communication", "EXCEPTION lors de l'attente de la fin du thread communication");
             }
         }
     }
@@ -327,7 +339,8 @@ public class Communication {
      **/
     public void diffusionPositionAuServeur() {
         if (cfg.diffuserMaPosition) {
-            if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE) Log.v("Communication","Diffusion de la position via internet");
+            if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE)
+                Log.v("Communication", "Diffusion de la position via internet");
             if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
             if (cfg.com != null) {
                 // Teste si la communication n'est pas déjà en cours
@@ -347,7 +360,7 @@ public class Communication {
                     // Sinon c'est que la communication est déjà active et il n'y a rien à faire
                 }
             } else {
-                Log.v("Communication","*********ERREUR : le module communication n'est pas" +
+                Log.v("Communication", "*********ERREUR : le module communication n'est pas" +
                         " actif et il y a demande de diffusion de la position !");
             }
             // Plannifie la prochaine diffusion
@@ -355,12 +368,13 @@ public class Communication {
                     cfg.intervalleMajSecondes * 1000);
         } else {
             if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.v("Communication",
-           "Appel de 'diffusionPositionAuServeur' alors que 'diffuserMaPosition' est à false");
+                    "Appel de 'diffusionPositionAuServeur' alors que 'diffuserMaPosition' est à false");
         }
 
     }
 
-    /** Met à jour le voyant indicateur de connexion au serveur (présent sur la page
+    /**
+     * Met à jour le voyant indicateur de connexion au serveur (présent sur la page
      * paramètres) en fonction de l'état de la variable cfg.communicationEnCours
      */
     public void majIndicateurConnexion() {
@@ -384,6 +398,41 @@ public class Communication {
                 cfg.handlerMainThread.sendMessage(msg);
             }
         }
+    }
+
+    /**
+     * Fonction qui envoie une commande au serveur
+     * @param commande String contenant le code commande
+     * @param argument String argument inséré juste après le code commande
+     */
+    public void envoiCommande(String commande, String argument) {
+        String requete = CARACTERE_COMMUNICATION_COMMANDE + commande + Position.SEPARATEUR_CHAMPS
+                + argument;
+        Thread threadCommande = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Socket socketClient = null;
+                PrintWriter out = null;
+                try {
+                    socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
+                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
+                    out.println(requete);
+                    out.flush();
+                } catch (Exception e) { //(IOException e) {
+                    // Rien à faire
+                } finally {
+                    if (out != null) out.close();
+                    if (socketClient != null) {
+                        try {
+                            socketClient.close();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        });
+        threadCommande.start();
     }
 }
 //package:org.patarasprod.localisationdegroupe

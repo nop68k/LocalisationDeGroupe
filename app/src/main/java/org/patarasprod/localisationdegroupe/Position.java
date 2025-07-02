@@ -26,8 +26,8 @@ public class Position {
     // Constantes
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     final String FORMAT_AFFICHAGE_POSITION = "%.7f";
-    final String SEPARATEUR_LATITUDE_LONGITUDE = ";";
-    final String SEPARATEUR_CHAMPS = "||";
+    public static final String SEPARATEUR_LATITUDE_LONGITUDE = ";";
+    public static final String SEPARATEUR_CHAMPS = "|";
     // Valeurs en cas de position invalide
     public static final String NOM_INVALIDE = "<Invalide>";
     final double LATITUDE_INVALIDE = 200.0;
@@ -107,6 +107,32 @@ public class Position {
                     + objetJSON);
         }
 
+    }
+
+    /**
+     * Converti les coordonnées GPS de la chaîne fournie en argument en un tableau de 2 doubles
+     * contenant la latitude et la longitude. Lève une exception si la chaîne n'est pas correcte
+     * @param chaine  Chaine contenant les coordonnées
+     * @return tableau de 2 doubles contenant la latitude et la longitude
+     */
+    public static double[] convertiChaineCoord(String chaine) throws NumberFormatException {
+        // On isole les deux parties avec une virgule
+        String ch = chaine.trim().replace("\n", ",").replace(";", ",");
+        if (!ch.contains(",")) {  // Si on n'a pas trouvé de séparateur
+            ch = ch.replaceFirst(" ", ",");   // On utilise le premier espace
+        }
+        if (ch.contains(",")) {
+            // Découpe en deux sous-chaînes en éliminant les lettres (NSEW) et plaçant un signe si besoin
+            String chaine_latitude = ch.substring(0,ch.indexOf(",")).replace("N","").trim();
+            if (chaine_latitude.contains("S")) chaine_latitude = "-" + chaine_latitude.replace("S","");
+            String chaine_longitude = ch.substring(ch.indexOf(",")+1).replace("E","").trim();
+            if (chaine_longitude.contains("W")) chaine_longitude = "-" + chaine_longitude.replace("W","");
+            double[] coordonnes = new double[2];
+            coordonnes[0] = Double.parseDouble(chaine_latitude.replace("--",""));
+            coordonnes[1] = Double.parseDouble(chaine_longitude.replace("--",""));
+            return coordonnes;
+        }
+        throw new NumberFormatException("Impossible de récupérer les coordonnées à partir de " + chaine);
     }
 
     public void majPosition(double latitude, double longitude) {
@@ -194,7 +220,9 @@ public class Position {
             if (VALEURS_REMPLISSAGE[i] > 0) {
                 if (TEXTE_REMPLISSAGE[i].equals("an") && VALEURS_REMPLISSAGE[i] > 1) {
                     chaine.append(VALEURS_REMPLISSAGE[i]).append(" ans");
-                } else {
+                } else if ( !(i >= 3 && VALEURS_REMPLISSAGE[0] != 0)
+                         && !(i >= 4 && (VALEURS_REMPLISSAGE[1] != 0)) )
+                {
                     if (chaine.length() != 0) chaine.append(" ");
                     chaine.append(VALEURS_REMPLISSAGE[i]).append(TEXTE_REMPLISSAGE[i]);
                 }

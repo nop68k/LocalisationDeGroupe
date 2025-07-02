@@ -18,7 +18,7 @@ import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilis
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements Handler.Callback {
-    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
     public static final int MSG_MAJ_VIEW = 1;   // Message pour mettre à jour la vue
 
     protected Config cfg;
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 return true;
             case R.id.item_menu_a_propos:
                 AlertDialog.Builder builder = new AlertDialog.Builder(binding.getRoot().getContext());
-                builder.setTitle("A propos...");
+                builder.setTitle(getString(R.string.titre_dialogue_a_propos));
                 builder.setMessage(cfg.MESSAGE_INFORMATION);
                 builder.setCancelable(false);
                 builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
     public boolean handleMessage(Message msg) {
         switch (msg.what) {
             case MSG_MAJ_VIEW:
-                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("mainActivity", "Mise à jour de la vue demandée");
+                if (Config.DEBUG_LEVEL > 6 && DEBUG_CLASSE) Log.d("mainActivity", "Mise à jour de la vue demandée");
                 View mView = (View)msg.obj;   // La vue doit être spécifiée dans l'objet
                 if (mView == null) {
                     if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("mainActivity",
