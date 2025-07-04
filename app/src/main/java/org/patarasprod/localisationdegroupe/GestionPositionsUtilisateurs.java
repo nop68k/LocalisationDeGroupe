@@ -34,7 +34,7 @@ public class GestionPositionsUtilisateurs {
 
     // positions est un HashMap dont les clés sont les noms des utilisateurs (String) et les valeurs
     // des objets Position
-    public Map<String,Position> positions = new HashMap<String,Position>();   // Positions des utilisateurs
+    public Map<String,Position> positions = new HashMap<>();   // Positions des utilisateurs
 
     public static final String SEPARATEUR_ELEMENTS_REPONSE_SERVEUR = "$";
     final int TAILLE_LABEL_MARQUEUR = 45;  // Taille des label sous les marqueurs
@@ -51,13 +51,6 @@ public class GestionPositionsUtilisateurs {
     public GestionPositionsUtilisateurs(Config config) {
         this.cfg = config;
         restaurePositionsAPartirDeLaSauvegarde();
-
-        /* TEST
-        String test = "Maison||48.56388;2.606280||2023-07-05T09:13:55.866Z$*$Florent||48.5638947;2.6062540||2023-07-17T09:32:06.918Z$*$Célian ||48.5639130;2.6064107||2023-07-15T18:43:49.511Z";
-        majPositions(test);
-        sauvegardePositions();
-
-*/
     }
 
     /** Ajoute ou insère une position dans la hashmap 'positions' à partir de la chaîne
@@ -71,7 +64,7 @@ public class GestionPositionsUtilisateurs {
         }
         else {
             if (positions.containsKey(position.nom)) {
-                ((Position) Objects.requireNonNull(this.positions.get(position.nom))).majPosition(position);
+                Objects.requireNonNull(this.positions.get(position.nom)).majPosition(position);
             } else {
                 positions.put(position.nom, position);
             }
@@ -153,7 +146,7 @@ public class GestionPositionsUtilisateurs {
             if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
                     "#### Mise en place nième marqueur avec map qui vaut :" + cfg.map);
             nomUtilisateur = iter2.next();
-            position = (Position) this.positions.get(nomUtilisateur);
+            position = this.positions.get(nomUtilisateur);
             if (estPositionValide(position) && !nomUtilisateur.equals(cfg.nomUtilisateur)) {
                 marqueur = new MarkerWithLabel(cfg.map, nomUtilisateur);
                 if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)  Log.v("GestionPositionUtilisateurs",
@@ -212,7 +205,7 @@ public class GestionPositionsUtilisateurs {
         Position position;
         while (iter.hasNext()) {
             nomUtilisateur = iter.next();
-            position = (Position) this.positions.get(nomUtilisateur);
+            position = this.positions.get(nomUtilisateur);
             assert position != null;
             JSONObject objetPositionASauvegarder = position.toJSONObject();
             positionsASauvegarder.put(objetPositionASauvegarder);
@@ -288,7 +281,8 @@ public class GestionPositionsUtilisateurs {
                         "position " + i + " : " + e);
                 return;
             }
-            if (!positions.containsKey(positionJSON.nom) || positionJSON.dateMesure.isAfter( ((Position)positions.get(positionJSON.nom)).dateMesure ) ) {
+            if (!positions.containsKey(positionJSON.nom) || positionJSON.dateMesure.
+                    isAfter(Objects.requireNonNull(positions.get(positionJSON.nom)).dateMesure ) ) {
                 // Si la position n'est pas dans la liste courante ou plus récente dans la sauvegarde
                 positions.put(positionJSON.nom, positionJSON);  // elle remplace la position actuelle
             }
@@ -310,7 +304,7 @@ public class GestionPositionsUtilisateurs {
  R.drawable.map_marker_43, R.drawable.map_marker_44, R.drawable.map_marker_45, R.drawable.map_marker_46,
  R.drawable.map_marker_47, R.drawable.map_marker_48, R.drawable.map_marker_49, R.drawable.map_marker_50};
 */
-        if (position.nom.length() == 0) return R.drawable.map_marker_0;
+        if (position.nom.isEmpty()) return R.drawable.map_marker_0;
         int hash = position.nom.charAt(0);
         if (position.nom.length() > 1) hash += position.nom.charAt(1);
         return tabIdMarqueurs[hash % (tabIdMarqueurs.length)];
@@ -318,10 +312,9 @@ public class GestionPositionsUtilisateurs {
 
     /** Fonction qui renvoie un ArrayList des positions gérées **/
     public ArrayList<Position> getListePositions() {
-        ArrayList<Position> liste = new ArrayList<Position>();
-        Iterator<String> iter = positions.keySet().iterator();
-        while (iter.hasNext()) {
-            liste.add((Position) positions.get(iter.next()));
+        ArrayList<Position> liste = new ArrayList<>();
+        for (String s : positions.keySet()) {
+            liste.add(positions.get(s));
         }
         return liste;
     }

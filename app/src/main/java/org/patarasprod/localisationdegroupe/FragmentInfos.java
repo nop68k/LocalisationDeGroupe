@@ -2,7 +2,6 @@ package org.patarasprod.localisationdegroupe;
 
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,6 +25,7 @@ import org.patarasprod.localisationdegroupe.databinding.DialogCoordonneesBinding
 import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
 import org.patarasprod.localisationdegroupe.views.ViewHolderListeUtilisateurs;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -35,7 +35,7 @@ import java.util.Objects;
 public class FragmentInfos extends Fragment {
 
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
-    private final long DELAI_MAJ_UI_LISTE = 1*1000;   // Nombre de ms entre maj de l'UI de la liste
+    private final long DELAI_MAJ_UI_LISTE = 1000;   // Nombre de ms entre maj de l'UI de la liste
     private    FragmentInfosBinding     binding;
 
     protected  View                     mView ;  // référence sur la View du fragment Infos
@@ -88,15 +88,13 @@ public class FragmentInfos extends Fragment {
         if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Création du handler pour la mise à jour");
         mHandler = new Handler();
 
-        routineMAJ = new Runnable() {
-            public void run() {
-                // maj de l'UI si la view est bien visible
-                if (mView != null && mView.isShown() && adapter != null) {
-                    if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
-                    adapter.majListeUtilisateurs();
-                    ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
-                    mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);  // Reprogramme une maj
-                }
+        routineMAJ = () -> {
+            // maj de l'UI si la view est bien visible
+            if (mView != null && mView.isShown() && adapter != null) {
+                if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
+                adapter.majListeUtilisateurs();
+                ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
+                mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);  // Reprogramme une maj
             }
         };
 
@@ -138,7 +136,9 @@ public class FragmentInfos extends Fragment {
     }
 
 
-
+    /**
+     * Met à jour le texte d'information pour le débuggage présent dans l'onglet info
+     */
     public void majTexteInfos() {
         String texte;
         if (cfg == null) {
@@ -151,16 +151,18 @@ public class FragmentInfos extends Fragment {
             texte += "Intervalle maj position : " + cfg.intervalleMajSecondes + " s\n" + "\n";
             texte += "com : " + cfg.com + "\n";
             texte += "gestionPositionsUtilisateurs : " + cfg.gestionPositionsUtilisateurs + "\n";
-            texte += "localisation : " + cfg.localisation + "\n" + "\n";
+            texte += "localisation : " + cfg.localisation + "\n\n";
             texte += "diffuserMaPosition : " + cfg.diffuserMaPosition + "\n";
             texte += "communicationEnCours : " + cfg.communicationEnCours + "\n";
             texte += "Nombre de positions suivies : " + cfg.nbPositions + "\n";
             texte += "threadCommunication : " + cfg.threadCommunication + "\n";
             texte += "Adresse serveur : " + cfg.adresse_serveur + "\n";
             texte += "port_serveur : " + cfg.port_serveur + "\n";
-            texte += "handlerDiffuserPosition :" + cfg.handlerDiffusionPosition + "\n" + "\n";
+            texte += "Ecart de temps avec le serveur : " + Duration.from(cfg.ecartTempsServeur).toMillis() + " ms\n";
+            texte += "handlerDiffuserPosition : " + cfg.handlerDiffusionPosition + "\n\n";
             texte += "reponse : " + cfg.reponse + "\n";
             texte += "\n\n\n";
+            // On change la visibilité du champ information en fonction de l'item de menu Debug
             if (cfg.texteInfos != null) {
                 cfg.texteInfos.setText(texte);
                 cfg.texteInfos.setVisibility(cfg.itemMenuInfosDebug ? View.VISIBLE : View.GONE);
@@ -235,32 +237,24 @@ public class FragmentInfos extends Fragment {
         builder.setTitle(getString(R.string.titre_saisie_coordonnees_GPS, vh.getPos().nom))
                 .setCancelable(true);  // On peut cliquer en dehors pour annuler
 
-        builder.setPositiveButton(R.string.dialog_OK, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                if (Config.DEBUG_LEVEL > 5) Log.v("infos","J'ai reçu " + String.valueOf(binding_dialog.saisieCoordonneesGPS.getText()).trim());
-                try {
-                    double[] coordonnees = Position.convertiChaineCoord(String.valueOf(binding_dialog.saisieCoordonneesGPS.getText()).trim());
-                    Log.v("infos","Latitude : " + coordonnees[0] + " , Longitude : " + coordonnees[1]);
-                    if (cfg != null && cfg.gestionPositionsUtilisateurs != null)
-                        cfg.gestionPositionsUtilisateurs.majPositions((new Position(vh.getPos().nom,
-                                coordonnees[0], coordonnees[1])).toString());
-                } catch (Exception e) {
-                    // Si ça s'est mal passé, on affiche un message furtif pour indiquer le problème
-                    Snackbar.make(Objects.requireNonNull(getView()),
-                            getString(R.string.msg_coordonnes_rentrees_invalides),
-                            Snackbar.LENGTH_LONG).setAction("Action", null).show();
-                    Log.d("infos",e.toString());
-                }
-                dialogInterface.dismiss();
+        builder.setPositiveButton(R.string.dialog_OK, (dialogInterface, i) -> {
+            if (Config.DEBUG_LEVEL > 5) Log.v("infos","J'ai reçu " + String.valueOf(binding_dialog.saisieCoordonneesGPS.getText()).trim());
+            try {
+                double[] coordonnees = Position.convertiChaineCoord(String.valueOf(binding_dialog.saisieCoordonneesGPS.getText()).trim());
+                Log.v("infos","Latitude : " + coordonnees[0] + " , Longitude : " + coordonnees[1]);
+                if (cfg != null && cfg.gestionPositionsUtilisateurs != null)
+                    cfg.gestionPositionsUtilisateurs.majPositions((new Position(vh.getPos().nom,
+                            coordonnees[0], coordonnees[1])).toString());
+            } catch (Exception e) {
+                // Si ça s'est mal passé, on affiche un message furtif pour indiquer le problème
+                Snackbar.make(Objects.requireNonNull(getView()),
+                        getString(R.string.msg_coordonnes_rentrees_invalides),
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                Log.d("infos",e.toString());
             }
+            dialogInterface.dismiss();
         });
-        builder.setNegativeButton(getString(R.string.dialog_annuler), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
+        builder.setNegativeButton(getString(R.string.dialog_annuler), (dialogInterface, i) -> dialogInterface.dismiss());
         AlertDialog dialog = builder.create();  // Construit la boîte de dialogue
         dialog.show();          // Et l'affiche
     }
@@ -289,40 +283,24 @@ public class FragmentInfos extends Fragment {
                     });
         }
         // Definition des boutons
-        builder.setPositiveButton(R.string.dialog_OK, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                // On tente la suppression et si elle réussit on affiche un message éphémère
-                if (cfg != null && cfg.gestionPositionsUtilisateurs != null &&
-                        cfg.gestionPositionsUtilisateurs.supprimePosition(vh.getPos().nom))
-                    Snackbar.make(Objects.requireNonNull(getView()),
-                            getString(R.string.msg_suppression_position_nom, vh.getPos().nom),
-                            Snackbar.LENGTH_SHORT).setAction("Action", null).show();
-                // Si on a demandé la suppression sur le serveur, on la demande avec une commande
-                if (case_a_cocher[0]) {   // Si la case est cochée
-                    if (cfg != null) {                 // On demande au serveur de supprimer le nom
-                        cfg.com.envoiCommande(Communication.SUPPRIMER, vh.getPos().nom);
-                    }
+        builder.setPositiveButton(R.string.dialog_OK, (dialogInterface, i) -> {
+            // On tente la suppression et si elle réussit on affiche un message éphémère
+            if (cfg != null && cfg.gestionPositionsUtilisateurs != null &&
+                    cfg.gestionPositionsUtilisateurs.supprimePosition(vh.getPos().nom))
+                Snackbar.make(Objects.requireNonNull(getView()),
+                        getString(R.string.msg_suppression_position_nom, vh.getPos().nom),
+                        Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+            // Si on a demandé la suppression sur le serveur, on la demande avec une commande
+            if (case_a_cocher[0]) {   // Si la case est cochée
+                if (cfg != null) {                 // On demande au serveur de supprimer le nom
+                    cfg.com.envoiCommande(Communication.COMMANDE_SUPPRIMER, vh.getPos().nom, false);
                 }
-                dialogInterface.dismiss();
             }
+            dialogInterface.dismiss();
         });
-        builder.setNegativeButton(getString(R.string.dialog_annuler), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
+        builder.setNegativeButton(getString(R.string.dialog_annuler), (dialogInterface, i) -> dialogInterface.dismiss());
         AlertDialog dialog = builder.create();  // Construit la boîte de dialogue
         dialog.show();          // Et l'affiche
-    }
-
-    public void majListeUtilisateurs() {
-        RecyclerViewAdapterListeUtilisateurs adapter = (RecyclerViewAdapterListeUtilisateurs) cfg.recyclerViewPositions.getAdapter();
-        for (int i = 0; i < Objects.requireNonNull(adapter).getItemCount() ; i++) {
-            long noView = adapter.getItemId(i);
-            View view = cfg.mainActivity.findViewById((int) adapter.getItemId(i));
-        }
     }
 
     @Override

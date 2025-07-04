@@ -9,7 +9,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,6 +17,8 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.patarasprod.localisationdegroupe.databinding.FragmentParametresBinding;
+
+import java.util.Objects;
 
 public class Fragment_parametres extends Fragment {
 
@@ -51,16 +52,13 @@ public class Fragment_parametres extends Fragment {
         View root = binding.getRoot();
 
         // Création du listener pour la validation des champs (par touche entrée ou suivant)
-        TextView.OnEditorActionListener traitementActions = new EditText.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE ||
-                        event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-                    majParametres();
-                    return true;
-                }
-                return false;
+        TextView.OnEditorActionListener traitementActions = (v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE ||
+                    event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                majParametres();
+                return true;
             }
+            return false;
         };
 
         // Remplissage des champs avec le contenu enregistré dans la configuration et création
@@ -134,8 +132,8 @@ public class Fragment_parametres extends Fragment {
      */
     private String validationNom(String nomAValider) {
         nomAValider = nomAValider.trim();   // trim() permet de supprimer les espaces avant et après
-        String nomValide = "";
-        boolean valide = true;
+        StringBuilder nomValide = new StringBuilder();
+        boolean valide;
         for (int i = 0 ; i < nomAValider.length() ; i++) {
             valide = true;
             for (int j = 0 ; j < CARACTERES_INTERDITS.length() ; j++) {
@@ -144,9 +142,9 @@ public class Fragment_parametres extends Fragment {
                     break;
                 }
             }
-            if (valide) nomValide += nomAValider.charAt(i);
+            if (valide) nomValide.append(nomAValider.charAt(i));
         }
-        return nomValide;
+        return nomValide.toString();
     }
 
     /**
@@ -170,7 +168,8 @@ public class Fragment_parametres extends Fragment {
             cfg.port_serveur = Integer.parseInt(String.valueOf(binding.champPortServeur.getText()));
             if (cfg.port_serveur < 0 || cfg.port_serveur > 65535) {
                 binding.champPortServeur.setTextColor(Color.RED);   // passe le texte en rouge
-                Snackbar.make(this.getView(), getString(R.string.msg_no_port_invalide), Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                Snackbar.make(Objects.requireNonNull(this.getView()), getString(R.string.msg_no_port_invalide),
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
             } else {
                 binding.champPortServeur.setTextColor(couleursChamps);  // restaure la couleur d'origine du champ
             }
@@ -206,12 +205,18 @@ public class Fragment_parametres extends Fragment {
 
         } catch (Exception e) {
             if (Config.DEBUG_LEVEL > 2) Log.v("parametres",
-                    "Problème dans la conversion des entrées : " + e.toString());
+                    "Problème dans la conversion des entrées : " + e);
         }
         if (Config.DEBUG_LEVEL > 2) Log.v("parametres", "Sauvegarde des paramètres");
         cfg.sauvegardeToutesLesPreferences();
     }
 
+    /**
+     * Listener appelé quand un champ perd le focus, ce qui permet de valider la saisie
+     * @param v         vue qui a provoqué l'appel
+     * @param hasFocus  true si la vue concerné a maintenant le focus, false si elle l'a perdu
+     * @return true si la chaîne de traitement doit s'arrêter là
+     */
     public boolean onFocusChange(View v, boolean hasFocus) {
         if (hasFocus) {
             return false; // Si c'est un gain de focus, cela ne valide rien

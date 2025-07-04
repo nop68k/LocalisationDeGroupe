@@ -8,6 +8,7 @@
     <string name="item_menu_actualiser">Rafraîchir</string>
     <string name="item_menu_autorisations">Redemander autorisations</string>
     <string name="item_menu_reinitialiser_positions">Réinitialiser les positions</string>
+    <string name="item_menu_synchroniser_heure">Synchroniser heure serveur</string>
     <string name="item_menu_infos_debug">Infos debug</string>
     <string name="item_menu_a_propos">A propos</string>
     <string name="titre_dialogue_a_propos">A propos...</string>
@@ -43,6 +44,7 @@
     <string name="description_champ_adresse_serveur">Adresse du serveur</string>
     <string name="msg_no_port_invalide">Le numéro de port doit être entre 0 et 65535 !</string>
     <string name="msg_position_copiee">Position copiée dans le presse-papier !</string>
+    <string name="chaine_affichage_coordonnees_GPS">%1$fN, %2$fE</string>
     <string name="texte_bouton_info">Appui court -> centrer la carte sur la personne\nAppui long -> menu contextuel</string>
     <string name="titre_notif_service">Suivi GPS en arrière plan</string>
     <string name="texte_notif_date_dernier_envoi">Dernier envoi réussi :</string>
@@ -61,4 +63,8 @@
     <string-array name="case_a_cocher_suppression_serveur">
         <item>Supprimer également sur le serveur</item>
     </string-array>
+    <string name="confirmation_effacer_positions">Sûr d\'effacer toutes les positions ?</string>
+    <string name="msg_ecart_temps_important">Ecart important entre l\'horloge du serveur et l\'horloge locale. La précision du programme en sera impactée.</string>
+    <string name="titre_ecart_temps_trop_grand">Problème avec la date et l\'heure</string>
+    <string name="msg_ecart_temps_trop_grand">Il y a un trop grand écart (%1$d s) entre l\'horloge du serveur et l\'horloge locale. Le programme ne fonctionnera pas correctement tant que le problème ne sera pas réglé. Corrigez-le et demandez à nouveau une synchronisation de l\'heure via le menu.</string>
 </resources>

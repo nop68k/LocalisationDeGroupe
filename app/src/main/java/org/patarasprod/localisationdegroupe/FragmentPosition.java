@@ -1,9 +1,9 @@
 package org.patarasprod.localisationdegroupe;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -50,13 +50,10 @@ public class FragmentPosition extends NavHostFragment {
         cfg.textViewLocalisation = binding.labelMaPosition;
         // Ajoute un listener sur le texte de la position pour que la position soit envoyée au serveur
         // une seule fois après le click sur ce texte
-        cfg.textViewLocalisation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (cfg.com != null) {
-                    Log.v("Fragment Position", "Envoi unique de la position");
-                    cfg.com.communique1FoisAvecServeur();
-                }
+        cfg.textViewLocalisation.setOnClickListener(v -> {
+            if (cfg.com != null) {
+                Log.v("Fragment Position", "Envoi unique de la position");
+                cfg.com.communique1FoisAvecServeur();
             }
         });
         cfg.textViewAltitude = binding.labelAltitude;
@@ -66,29 +63,27 @@ public class FragmentPosition extends NavHostFragment {
         // Mise en place des listener pour les boutons de copie de la position vers le presse-papier
         positionVersPressePapier = binding.posVersPressePapier;
         positionAngleVersPressePapier = binding.posAngleVersPressePapier;
-        positionVersPressePapier.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String pourPressePapier = cfg.textViewLocalisation.getText().toString().replace("\n",",");
-                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(getContext().CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("Position", pourPressePapier);
-                clipboard.setPrimaryClip(clip);
-                Snackbar.make(Objects.requireNonNull(cfg.fragment_position.getView()),
-                        getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
-            }
+        positionVersPressePapier.setOnClickListener(v -> {
+            String pourPressePapier = cfg.textViewLocalisation.getText().toString().replace("\n",",");
+            getContext();
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager)
+                    Objects.requireNonNull(getContext()).getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Position", pourPressePapier);
+            clipboard.setPrimaryClip(clip);
+            Snackbar.make(Objects.requireNonNull(cfg.fragment_position.getView()),
+                    getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
         });
 
-        positionAngleVersPressePapier.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String pourPressePapier = cfg.textViewLatitude.getText().toString() + "," +
-                                          cfg.textViewLongitude.getText().toString();
-                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(getContext().CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("Position", pourPressePapier);
-                clipboard.setPrimaryClip(clip);
-                Snackbar.make(Objects.requireNonNull(cfg.fragment_position.getView()),
-                        getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
-            }
+        positionAngleVersPressePapier.setOnClickListener(v -> {
+            String pourPressePapier = cfg.textViewLatitude.getText().toString() + "," +
+                                      cfg.textViewLongitude.getText().toString();
+            getContext();
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager)
+                    Objects.requireNonNull(getContext()).getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Position", pourPressePapier);
+            clipboard.setPrimaryClip(clip);
+            Snackbar.make(Objects.requireNonNull(cfg.fragment_position.getView()),
+                    getString(R.string.msg_position_copiee), Snackbar.LENGTH_SHORT).setAction("Action", null).show();
         });
 
         if (cfg != null && Config.DEBUG_LEVEL > 3) Log.v("Fragment Position", "Création du fragment Position");

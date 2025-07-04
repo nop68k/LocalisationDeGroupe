@@ -21,11 +21,11 @@ import org.patarasprod.localisationdegroupe.R;
 public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
 
     //@BindView(R.id.item_liste_utilisateurs)  TextView textView;
-    private     TextView        textViewNom;
-    private     TextView        textViewPosition;
-    private     TextView        textViewAnciennete;
+    private final TextView        textViewNom;
+    private final TextView        textViewPosition;
+    private final TextView        textViewAnciennete;
     private     Position        position;
-    private     MenuInflater    menuInflater;
+    private final MenuInflater    menuInflater;
     protected   FragmentInfos.PasseurDeReference referenceVH;       // Pour les menus contextuels
 
     public ViewHolderListeUtilisateurs(View itemView, Config cfg, MenuInflater m, FragmentInfos.PasseurDeReference referenceVH) {
@@ -41,12 +41,9 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder impleme
         itemView.setOnCreateContextMenuListener(this);
 
         // Gestion de l'appui court => Centre la carte sur cette personne et bascule sur l'onglet carte
-        itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                cfg.mapController.setCenter(position.getGeoPoint()); // Centre sur cette position
-                cfg.viewPager.setCurrentItem(1);   // Ramène à l'onglet 1 (carte)
-            }
+        itemView.setOnClickListener(view -> {
+            cfg.mapController.setCenter(position.getGeoPoint()); // Centre sur cette position
+            cfg.viewPager.setCurrentItem(1);   // Ramène à l'onglet 1 (carte)
         });
     }
 
@@ -54,29 +51,16 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder impleme
      * Remplis les champs du viewHolder avec les informatios données dans l'argument position
      * et met à jour ses attributs.
      * @param position  objet Position contenant les données à jour
-     * @param numero    position (ordre) du viewHolder dans le recyclerView (la liste)
+     * @param ignoredNumero    position (ordre) du viewHolder dans le recyclerView (la liste)
      */
-    public void remplisUtilisateur(Position position, int numero){
+    public void remplisUtilisateur(Position position, int ignoredNumero){
         this.position = position;
         this.textViewNom.setText(position.nom);
-        this.textViewPosition.setText(position.latitude + "N, " + position.longitude + "E");
+        this.textViewPosition.setText(this.textViewNom.getContext().getString(
+                R.string.chaine_affichage_coordonnees_GPS,position.latitude, position.longitude));
         this.textViewAnciennete.setText(position.getAnciennete());
         this.textViewAnciennete.setTextColor(position.couleurAnciennete());
         //if (numero % 2 == 1) this.itemView.setBackgroundColor(Color.DKGRAY);
-    }
-
-    /**
-     * Met à jour le ViewHolder avec les données stockées dans ses attributs
-     * @param numero   position (ordre) du viewHolder dans le recyclerView (la liste)
-     */
-    public void majUtilisateur(int numero) {
-        this.textViewNom.setText(this.position.nom);
-        this.textViewPosition.setText(this.position.latitude + "N, " + this.position.longitude + "E");
-        this.textViewAnciennete.setText(this.position.getAnciennete());
-    }
-
-    public void onCreateView() {
-
     }
 
     public Position getPos() {
@@ -86,8 +70,6 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder impleme
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
-        // TODO Auto-generated method stub
-        Context context = v.getContext();
         menuInflater.inflate(R.menu.menu_contextuel_noms, menu);
         // On fixe la référence à notre ViewHolder pour que la méthode onContextItemSelected du
         // fragment Infos puisse savoir quel élément a été cliqué

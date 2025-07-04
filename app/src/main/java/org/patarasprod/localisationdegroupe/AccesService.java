@@ -70,7 +70,7 @@ public class AccesService {
         Message msg = Message.obtain(null, codeMsg);
         try {
             //msg.replyTo = mMessenger;  // Si on veut une réponse
-            mService.send(msg);
+            if (mService != null)  mService.send(msg);
         } catch (RemoteException e) {
             Log.d("AccesService", "Erreur dans l'envoi du message " + codeMsg);
         }
@@ -92,7 +92,7 @@ public class AccesService {
         }
     }
 
-    public boolean connexionService() {
+    public void connexionService() {
         mContext.bindService(new Intent(mContext,
                 LocationUpdateService.class), mConnection, Context.BIND_AUTO_CREATE);
         try {
@@ -102,9 +102,7 @@ public class AccesService {
         }
         if (mService != null) {
             mIsBound = true;    // Drapeau indiquant que la liaison est effective
-            return true;
         }
-        return false;
     }
 
     void deconnexionService() {
@@ -185,7 +183,7 @@ public class AccesService {
         Log.d("AccesService", "demande de maj avec mIsbound = " + mIsBound);
         if (!mIsBound) return;   // Si pas de connexion au service, on ne fait rien
         if (config == null) config = cfg;
-        Bundle bundle = null;
+        Bundle bundle;
         if (config != null) {
             bundle = creationBundleParametresService(config);
         } else {

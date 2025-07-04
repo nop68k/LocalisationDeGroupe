@@ -1,6 +1,7 @@
 package org.patarasprod.localisationdegroupe;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -11,6 +12,8 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.res.ResourcesCompat;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,6 +21,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Classe gérant les communications avec le serveur (sauf celle en tâche de fond gérée directement
@@ -30,16 +35,16 @@ public class Communication {
     public static final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = ">";
     public static final String CARACTERE_COMMUNICATION_COMMANDE = "^";
 
-    public static final String SUPPRIMER = "SUPPR";
+    public static final String COMMANDE_SUPPRIMER = "SUPPR";  // Pour supprimer une position sur le serveur
+    public static final String COMMANDE_SYNCHRONISER = "SYNC";  // Pour synchroniser l'heure avec le serveur
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     Config cfg;
-    Socket socketClient;    // Socket de connexion
-    PrintWriter out;        // flux de sortie (pour envoyer au serveur)
-    BufferedReader in;      // flux d'entrée (pour recevoir la réponse du serveur)
+
 
     public Communication(Config config) {
         cfg = config;
         demandeAutorisationInternet();
+        synchronisationHeureServeur();
     }
 
     /**
@@ -53,8 +58,11 @@ public class Communication {
         if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Création du socket client");
         try {
             Socket socketClient = new Socket(adresse, port);
-            if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Socket client crée");
-            Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
+            if (Config.DEBUG_LEVEL > 4) {
+                Log.v("Communication", "Socket client crée");
+                Log.v("Communication", "connectionAuServeurOK : " + cfg.connectionAuServeurOK);
+            }
+
             if (cfg.connectionAuServeurOK) return socketClient;
             // La connection n'était pas établie, donc on l'indique
             cfg.connectionAuServeurOK = true;
@@ -76,6 +84,10 @@ public class Communication {
     public void demarreCommunicationAvecServeur() {
         // La création de socket doit se faire dans un autre Thread obligatoirement
         cfg.threadCommunication = new Thread(new Runnable() {
+            // Variables du thread
+            Socket socketClient;    // Socket de connexion
+            PrintWriter out;        // flux de sortie (pour envoyer au serveur)
+            BufferedReader in;      // flux d'entrée (pour recevoir la réponse du serveur)
             @Override
             public void run() {
                 cfg.communicationEnCours = false;
@@ -92,7 +104,6 @@ public class Communication {
                     in = null;
                     out = new PrintWriter(socketClient.getOutputStream(), true);
                     in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
-                    //if (Config.DEBUG_LEVEL > 4) Log.v("Communication", "Création réussie des 'in' et 'out' du socket");
                 } catch (Exception e) { //(IOException e) {
                     if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.v("Communication",
                             "Problème lors de la création du socket client :");
@@ -101,9 +112,9 @@ public class Communication {
                     fermeture();
                     return;
                 }
-                if (in == null || out == null) {
-                    Log.v("Communication", "Problème à la création des flux entrants et sortant du socket"
-                            + "\nin = " + in + " \tout = " + out);
+                if (out == null) {
+                    if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.d("Communication",
+                            "Problème à la création du flux sortant du socket");
                     fermeture();
                     return;
                 }
@@ -114,20 +125,21 @@ public class Communication {
                 cfg.communicationEnCours = true;
                 while (cfg.reponse != null && cfg.diffuserMaPosition && !erreurCommunication &&
                         !cfg.reponse.equals("FIN")) {
-                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                    if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)
                         Log.v("Communication", "Envoi du message : " +
-                                CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
+                                CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString(false));
                     // Envoi de la position au serveur
-                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
+                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString(false));
+                    out.flush();
                     // Récupération de la réponse
-                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                    if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)
                         Log.v("Communication", "Lecture de la réponse du serveur sur " + in.toString());
                     try {
                         cfg.reponse = in.readLine();
-                        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)
                             Log.v("Communication", "Réponse du serveur : " + cfg.reponse);
                         // Attente avant de recommencer le dialogue
-                        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
+                        if (Config.DEBUG_LEVEL > 4 && DEBUG_CLASSE)
                             Log.v("Communication", "Attente pendant " + cfg.intervalleMajSecondes + " s");
                         traitementReponse(cfg.reponse);
                         if (cfg.fragment_infos != null) cfg.fragment_infos.majTexteInfos();
@@ -172,10 +184,6 @@ public class Communication {
                     }
                 }
             }
-
-            public void stop() {
-                fermeture();
-            }
         });
         cfg.threadCommunication.start();
     }
@@ -187,6 +195,10 @@ public class Communication {
     public void communique1FoisAvecServeur() {
         // La création de socket doit se faire dans un autre Thread obligatoirement
         cfg.threadCommunication1Fois = new Thread(new Runnable() {
+            // Variables du thread
+            Socket socketClient;    // Socket de connexion
+            PrintWriter out;        // flux de sortie (pour envoyer au serveur)
+            BufferedReader in;      // flux d'entrée (pour recevoir la réponse du serveur)
             @Override
             public void run() {
                 // Si on ne connaît pas notre position, on ne démarre pas la communication et on sort tout de suite
@@ -214,13 +226,13 @@ public class Communication {
                 }
                 if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                     Log.v("Communication", "Com1fois : envoi du message avec la position " +
-                            CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
+                            CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString(false));
                 // Envoi de la position au serveur
                 try {
-                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString());
-                    //out.flush();
-                    //out.close();
-                    //out=null;
+                    out.println(CARACTERE_COMMUNICATION_BIDIRECTIONNELLE + cfg.maPosition.toString(false));
+                    out.flush();
+                    out.close();    // Ferme le canal d'envoi
+                    out=null;
                     // Récupération de la réponse
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                         Log.v("Communication", "Com1fois : Lecture de la réponse du serveur sur " + in.toString());
@@ -233,14 +245,12 @@ public class Communication {
                 } catch (Exception e) {
                     cfg.reponse = cfg.ERREUR_READLINE_SOCKET_DISTANT;
                 }
-                if (Config.DEBUG_LEVEL > 2 && DEBUG_CLASSE)
+                if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
                     Log.v("Communication", "Com1fois : -------Fermeture de la communication bi-directionelle");
                 fermeture();
                 try {
                     Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                } catch (InterruptedException ignored) { }
             }
 
             public void traitementReponse(String reponse) {
@@ -254,9 +264,7 @@ public class Communication {
             }
 
             public void fermeture() {
-                if (out != null) {
-                    out.close();
-                }
+                if (out != null) out.close();
                 if (in != null) {
                     try {
                         in.close();
@@ -276,7 +284,7 @@ public class Communication {
         cfg.threadCommunication1Fois.start();
     }
 
-    public boolean demandeAutorisationInternet() {
+    public void demandeAutorisationInternet() {
         Context contexte = cfg.mainActivity.getBaseContext();
         if (ActivityCompat.checkSelfPermission(contexte, Manifest.permission.INTERNET)
                 != PackageManager.PERMISSION_GRANTED &&
@@ -290,12 +298,11 @@ public class Communication {
                             != PackageManager.PERMISSION_GRANTED) {
                 if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE)
                     Log.v("Communication", "Autorisation internet NON accordée");
-                return false;
+                return;
             }
         }
         if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE)
             Log.v("Communication", "Autorisation internet accordée");
-        return true;
     }
 
     public void stopThreadCommunication() {
@@ -356,15 +363,13 @@ public class Communication {
                         cfg.threadCommunication.interrupt();        // Force l'arrêt
                         cfg.com.demarreCommunicationAvecServeur();  // puis on le relance
                     }
-                } else {
-                    // Sinon c'est que la communication est déjà active et il n'y a rien à faire
-                }
+                } // Sinon c'est que la communication est déjà active et il n'y a rien à faire
             } else {
                 Log.v("Communication", "*********ERREUR : le module communication n'est pas" +
                         " actif et il y a demande de diffusion de la position !");
             }
             // Plannifie la prochaine diffusion
-            cfg.handlerDiffusionPosition.postDelayed(() -> this.diffusionPositionAuServeur(),
+            cfg.handlerDiffusionPosition.postDelayed(this::diffusionPositionAuServeur,
                     cfg.intervalleMajSecondes * 1000);
         } else {
             if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.v("Communication",
@@ -405,35 +410,60 @@ public class Communication {
      * @param commande String contenant le code commande
      * @param argument String argument inséré juste après le code commande
      */
-    public void envoiCommande(String commande, String argument) {
+    public String envoiCommande(String commande, String argument, boolean attendReponse) {
         String requete = CARACTERE_COMMUNICATION_COMMANDE + commande + Position.SEPARATEUR_CHAMPS
                 + argument;
-        Thread threadCommande = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Socket socketClient = null;
-                PrintWriter out = null;
-                try {
-                    socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur);
-                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
-                    out.println(requete);
-                    out.flush();
-                } catch (Exception e) { //(IOException e) {
-                    // Rien à faire
-                } finally {
-                    if (out != null) out.close();
-                    if (socketClient != null) {
-                        try {
-                            socketClient.close();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
+        Thread threadCommande = new Thread(() -> {
+            BufferedReader in = null;
+            try (Socket socketClient = creationSocketClient(cfg.adresse_serveur, cfg.port_serveur); PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true)) {
+                if (attendReponse)
+                    in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
+                out.println(requete);
+                out.flush();
+                if (attendReponse) cfg.reponseServeur = in.readLine();
+            } catch (Exception e) { //(IOException e) {
+                // Rien à faire
             }
         });
         threadCommande.start();
+        try { Thread.sleep(Config.TEMPS_ATTENTE_REPONSE_SERVEUR_MS);
+        } catch (Exception ignored) {  }
+        return cfg.reponseServeur;
     }
+
+    /**
+     * Envoi une commande SYNC pour demander au serveur l'écart entre son heure et l'heure locale
+     * Si l'écart est plus important que ECART_TEMPS_MAXIMAL_AVEC_SERVEUR_MS, un dialog est affiché
+     * indiquant que le programme ne fonctionnera pas correctement.
+     * Si l'écart est plus important que ECART_TEMPS_AVERTISSEMENT_AVEC_SERVEUR_MS, un message
+     * furtif d'avertissement est affiché mais comme dans le cas où l'écart est plus grand, celui-ci
+     * est stocké dans cfg.ecartTempsServeur pour servir de tolérance lors de la validation des
+     * positions diffusées par le serveur.
+     */
+    @SuppressLint("WrongConstant")
+    public void synchronisationHeureServeur() {
+        String delta = envoiCommande(Communication.COMMANDE_SYNCHRONISER, Instant.now().toString(), true);
+        if (delta != null) {
+            float fDelta = Float.parseFloat(delta) * 1000;
+            long lDelta = Float.valueOf(fDelta).longValue();
+            if (lDelta > Config.ECART_TEMPS_MAXIMAL_AVEC_SERVEUR_MS ||
+                    lDelta < - Config.ECART_TEMPS_MAXIMAL_AVEC_SERVEUR_MS) {
+                // Si l'écart est inacceptable, affiche un message indiquant le problème
+                cfg.mainActivity.dialogSimple(cfg.mainActivity.getString(R.string.titre_ecart_temps_trop_grand),
+                        cfg.mainActivity.getString(R.string.msg_ecart_temps_trop_grand,lDelta/1000));
+                lDelta = 0;   // Remet l'écart à zéro
+            } else if (lDelta > Config.ECART_TEMPS_AVERTISSEMENT_AVEC_SERVEUR_MS ||
+                    lDelta < - Config.ECART_TEMPS_AVERTISSEMENT_AVEC_SERVEUR_MS) {
+                // Si l'écart est important, on le signale
+                Snackbar.make(cfg.mainActivity.findViewById(android.R.id.content), cfg.mainActivity.getString(R.string.msg_ecart_temps_important),
+                        Config.DUREE_AFFICHAGE_MSG_ECART_TEMPS_IMPORTANT_MS).setAction("Action", null).show();
+            }
+            cfg.ecartTempsServeur = Duration.ofMillis(lDelta);
+        }
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.v("mainActivity",
+                "Différence de temps avec le serveur : " + delta + " s");
+    }
+
 }
 //package:org.patarasprod.localisationdegroupe
 // Communication | parametres

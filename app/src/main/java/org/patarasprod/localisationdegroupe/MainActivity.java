@@ -1,7 +1,7 @@
 package org.patarasprod.localisationdegroupe;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -54,6 +54,22 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         if (cfg.prefDiffuserEnFond) cfg.accesService.demarrageService();
     }
 
+    /**
+     * Crée et affiche un dialogue simple avec un seul bouton OK
+     * @param titre   String Titre de la boîte de dialogue
+     * @param contenu String Contenu de la boîte de dialogue
+     */
+    public void dialogSimple(String titre, String contenu) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(binding.getRoot().getContext());
+        builder.setTitle(titre);
+        builder.setMessage(contenu);
+        builder.setCancelable(false);
+        builder.setPositiveButton("Ok", (dialogInterface, i) -> dialogInterface.dismiss());
+        builder.show();
+    }
+
+
+    @SuppressLint("NonConstantResourceId")
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch (item.getItemId()) {
@@ -68,13 +84,28 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 if (cfg.com != null) cfg.com.majIndicateurConnexion();
                 return true;
             case R.id.item_menu_reinitialiser_positions:
-                cfg.gestionPositionsUtilisateurs.reinitialise_positions();
+                // On crée une boîte de dialogue de confirmation
+                AlertDialog.Builder builderC = new AlertDialog.Builder(this);
+                builderC.setMessage(getString(R.string.confirmation_effacer_positions))
+                        .setCancelable(true)
+                        .setPositiveButton(getString(R.string.dialog_OK), (dialog, id) -> {
+                            cfg.gestionPositionsUtilisateurs.reinitialise_positions();
+                            dialog.dismiss();
+                        })
+                        .setNegativeButton(getString(R.string.dialog_annuler), (dialog, id) -> dialog.dismiss());
+                AlertDialog alert = builderC.create();
+                alert.show();
                 return true;
             case R.id.item_menu_redemander_autorisations:
                 cfg.localisation.demandeAutorisationsLocalisation();
                 cfg.com.demandeAutorisationInternet();
                 cfg.handler = new Handler();
                 cfg.handler.postDelayed(() -> cfg.localisation.getLocalisation(), 3000);
+                return true;
+            case R.id.item_menu_synchroniser_heure:
+                if (cfg != null && cfg.com != null) {
+                    cfg.com.synchronisationHeureServeur();
+                }
                 return true;
             case R.id.item_menu_infos_debug:
                 if (cfg != null) {
@@ -86,17 +117,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 }
                 return true;
             case R.id.item_menu_a_propos:
-                AlertDialog.Builder builder = new AlertDialog.Builder(binding.getRoot().getContext());
-                builder.setTitle(getString(R.string.titre_dialogue_a_propos));
-                builder.setMessage(cfg.MESSAGE_INFORMATION);
-                builder.setCancelable(false);
-                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.dismiss();
-                    }
-                });
-                builder.show();
+                dialogSimple(getString(R.string.titre_dialogue_a_propos), Config.MESSAGE_INFORMATION);
                 return true;
             case R.id.item_menu_quitter:
                 // Stoppe le service de mise à jour de la position en arrière plan
@@ -120,7 +141,6 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
 
     /**
      * Handler pour dialoguer (récupérer les messages) avec les autres threads de l'application
-     *
      * @return true si le traitement est terminé
      */
     @Override

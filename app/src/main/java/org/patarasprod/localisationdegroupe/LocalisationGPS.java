@@ -3,10 +3,7 @@ package org.patarasprod.localisationdegroupe;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -16,17 +13,13 @@ import android.location.LocationRequest.Builder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
-import android.provider.Settings;
+
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
 
-
-import com.google.android.gms.location.Priority;
-
-import java.util.List;
 import java.util.Locale;
 
 
@@ -34,11 +27,10 @@ public final class LocalisationGPS implements LocationListener {
 
     private final Context mContext;
 
-    Config cfg = null;                      // Référence vers la config de l'appli
+    Config cfg;                      // Référence vers la config de l'appli
 
     public boolean GPSDisponible = false;        // flag for GPS status
     boolean NetworkDisponible = false;           // flag for network status
-    boolean localisationDisponible = false;             // flag for GPS status
 
     Location localisation;      // localisation
     double latitude = 1000.0; // latitude
@@ -98,7 +90,7 @@ public final class LocalisationGPS implements LocationListener {
                 metEnPlaceActualisationPosition();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            if (Config.DEBUG_LEVEL > 1) Log.d("LocalisationGPS", "Problème lors de l'initialisation : " + e);
         }
     }
 
@@ -116,7 +108,9 @@ public final class LocalisationGPS implements LocationListener {
                 || ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // On a eu une autorisation de localisation, maintenant on va demander à l'avoir en tâche de fond
             if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions((Activity) mContext, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 1);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ActivityCompat.requestPermissions((Activity) mContext, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 1);
+                }
             }
             if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return false;
@@ -208,7 +202,7 @@ public final class LocalisationGPS implements LocationListener {
             cfg.textViewLocalisation.setText(coordsSurDeuxLignes());
         }
         if (cfg.textViewAltitude != null) {
-            String texte = "";
+            String texte;
             if (localisation != null && localisation.hasAltitude()) {
                 texte = String.format(FORMAT_AFFICHAGE_ALTITUDE, localisation.getAltitude()) + " m";
             } else {
@@ -241,19 +235,19 @@ public final class LocalisationGPS implements LocationListener {
 
 
     @Override
-    public void onLocationChanged(Location location) {
+    public void onLocationChanged(@NonNull Location location) {
         if (Config.DEBUG_LEVEL > 4) Log.v("LocalisationGPS", "Position modifiée");
         getLocalisation();
         actualise_position();
     }
 
     @Override
-    public void onProviderDisabled(String provider) {
+    public void onProviderDisabled(@NonNull String provider) {
         // TODO
     }
 
     @Override
-    public void onProviderEnabled(String provider) {
+    public void onProviderEnabled(@NonNull String provider) {
         // TODO
     }
 
@@ -262,10 +256,7 @@ public final class LocalisationGPS implements LocationListener {
         if (Config.DEBUG_LEVEL > 3) Log.v("LocalisationGPS","Status modifié");
         // TODO
     }
-    public String coordsSurUneLigne() {
-        return String.format(localeEn, FORMAT_AFFICHAGE_POSITION,latitude) +
-                "N, " + String.format(localeEn, FORMAT_AFFICHAGE_POSITION, longitude) + "E";
-    }
+
     public String coordsSurDeuxLignes() {
         return String.format(localeEn, FORMAT_AFFICHAGE_POSITION,latitude) + "N\n"
                + String.format(localeEn, FORMAT_AFFICHAGE_POSITION, longitude) + "E";

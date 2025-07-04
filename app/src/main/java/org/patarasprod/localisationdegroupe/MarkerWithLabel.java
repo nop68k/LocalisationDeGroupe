@@ -9,8 +9,8 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 
 public class MarkerWithLabel extends Marker {
-    Paint textPaint = null;
-    String mLabel = null;
+    Paint textPaint;
+    String mLabel;
     float labelFontSize ;
 
     public MarkerWithLabel(MapView mapView, String label) {

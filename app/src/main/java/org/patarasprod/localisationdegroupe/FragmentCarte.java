@@ -1,6 +1,5 @@
 package org.patarasprod.localisationdegroupe;
 
-import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -86,13 +85,13 @@ public class FragmentCarte extends Fragment {
         cfg.mapController.setCenter(cfg.centreCarte);
 
         //Compas en surimpression
-        cfg.mCompassOverlay = new CompassOverlay((Context)requireActivity(),
-                new InternalCompassOrientationProvider((Context)requireActivity()), cfg.map);
+        cfg.mCompassOverlay = new CompassOverlay(requireActivity(),
+                new InternalCompassOrientationProvider(requireActivity()), cfg.map);
         cfg.mCompassOverlay.enableCompass();
         cfg.map.getOverlays().add(cfg.mCompassOverlay);
 
         // Mylocation : Surimpression de ma position
-        cfg.maPosition_LocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider((Context)requireActivity()), cfg.map);
+        cfg.maPosition_LocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(requireActivity()), cfg.map);
         cfg.maPosition_LocationOverlay.enableMyLocation();
         cfg.map.getOverlays().add(cfg.maPosition_LocationOverlay);
 
@@ -139,16 +138,13 @@ public class FragmentCarte extends Fragment {
         }
     }
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         // Restaure les caractéristiques de visualisation de la carte (centre, zoom, orientation
         cfg.map.post(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        cfg.mapController.setCenter(cfg.centreCarte);
-                        cfg.mapController.setZoom(cfg.niveauZoomCarte);
-                        cfg.map.setMapOrientation(cfg.orientationCarte);
-                    }
+                () -> {
+                    cfg.mapController.setCenter(cfg.centreCarte);
+                    cfg.mapController.setZoom(cfg.niveauZoomCarte);
+                    cfg.map.setMapOrientation(cfg.orientationCarte);
                 }
         );
     }

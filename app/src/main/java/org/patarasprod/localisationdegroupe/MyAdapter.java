@@ -2,6 +2,7 @@ package org.patarasprod.localisationdegroupe;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
@@ -14,6 +15,7 @@ public class MyAdapter extends androidx.viewpager2.adapter.FragmentStateAdapter 
         super(fa);
         this.totalTabs = totalTabs;
     }
+    @NonNull
     @Override
     public Fragment createFragment(int position) {
         if (Config.DEBUG_LEVEL > 3) Log.v("MyAdapter","Méthode Fragment appellée avec position = " + position);
@@ -27,8 +29,7 @@ public class MyAdapter extends androidx.viewpager2.adapter.FragmentStateAdapter 
             case 3:
                 return new Fragment_parametres();
             default:
-                Log.v("MyAdapter","@@@@ ERREUR : Méthode Fragment appellée avec position = " + position);
-                return null;
+                throw new RuntimeException("@@@@ ERREUR : Méthode Fragment appellée avec position = " + position);
         }
     }
 

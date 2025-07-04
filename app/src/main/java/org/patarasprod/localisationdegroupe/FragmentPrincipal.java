@@ -64,7 +64,7 @@ public class FragmentPrincipal extends NavHostFragment {
           et notamment la méthode setUserInputEnabled pour désactiver le swipe
          */
 
-        viewPager = (ViewPager2) binding.viewPager2; //findViewById(R.id.viewPager2);
+        viewPager = binding.viewPager2; //findViewById(R.id.viewPager2);
         adapter = new MyAdapter(cfg.mainActivity, tabLayout.getTabCount());
         viewPager.setAdapter(adapter);
         viewPager.registerOnPageChangeCallback(new OnPageChangeCallback_ViewPager2(cfg));
@@ -90,28 +90,21 @@ public class FragmentPrincipal extends NavHostFragment {
         viewPager.setUserInputEnabled(false);
 
         // Bouton flottant (Floating Action Button) pour centrer sur notre position
-        binding.fabCentrerSurMaPosition.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Snackbar.make(view, "Centrage sur ma position", Snackbar.LENGTH_LONG).setAction("Action", null).show();
-                // Centrage de la carte sur ma position
-                if (cfg != null && cfg.mapController != null)
-                    cfg.mapController.setCenter(cfg.maPosition.getGeoPoint());
-                // On bascule sur l'onglet 1 (la carte)
-                if (cfg != null && cfg.viewPager != null) {
-                    cfg.viewPager.setCurrentItem(1);
-                    //cfg.viewPager.invalidate();
-                }
+        binding.fabCentrerSurMaPosition.setOnClickListener(view -> {
+            //Snackbar.make(view, "Centrage sur ma position", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            // Centrage de la carte sur ma position
+            if (cfg != null && cfg.mapController != null)
+                cfg.mapController.setCenter(cfg.maPosition.getGeoPoint());
+            // On bascule sur l'onglet 1 (la carte)
+            if (cfg != null && cfg.viewPager != null) {
+                cfg.viewPager.setCurrentItem(1);
+                //cfg.viewPager.invalidate();
             }
         });
 
         // Bouton flottant (Floating Action Button) d'information
-        binding.fabInfo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, getString(R.string.texte_bouton_info), Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            }
-        });
+        binding.fabInfo.setOnClickListener(view -> Snackbar.make(view, getString(R.string.texte_bouton_info),
+                Snackbar.LENGTH_LONG).setAction("Action", null).show());
 
         if (Config.DEBUG_LEVEL > 3) Log.v("Fragment principal", "---Fin du OnCreateView du fragment principal");
 

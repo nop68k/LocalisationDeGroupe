@@ -2,14 +2,11 @@ package org.patarasprod.localisationdegroupe;
 
 
 import androidx.fragment.app.FragmentManager;
-import androidx.navigation.NavController;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
-import android.app.ActionBar;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.AssetManager;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.widget.ImageButton;
@@ -24,6 +21,9 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
+import java.time.Duration;
+import java.time.temporal.TemporalAmount;
+
 /**
  * Classe stockant la configuration du système
  * Cette classe stocke les références vers les objets utiles et possède des méthodes pour sauvegarder
@@ -31,10 +31,23 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
  */
 public class Config {
 
-    public static int DEBUG_LEVEL = 3; // Niveau d'expressivité des messages de debug (0 = aucun message)
+    public static final long TEMPS_ATTENTE_REPONSE_SERVEUR_MS = 800;  // en ms
+
+
+
+    public static int DEBUG_LEVEL = 0; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 2.1.3\n(Juillet 2025)";
+            "Version 2.2.3\n(Juillet 2025)";
+    public String reponseServeur;  // Enregistre la réponse du serveur à une commande
+
+    // Ecart de temps entre l'heure locale et l'heure sur le serveur (Mis à jour par la commande
+    // SYNC. Positif si l'heure locale avance sur le serveur
+    public TemporalAmount ecartTempsServeur = Duration.ofMillis(0);
+    public static final long ECART_TEMPS_AVERTISSEMENT_AVEC_SERVEUR_MS = 300;
+    public static final int ECART_TEMPS_MAXIMAL_AVEC_SERVEUR_MS = 30000;
+    public static final long TOLERANCE_ECART_TEMPS_AVEC_SERVEUR_MS = 200;
+    public static final int DUREE_AFFICHAGE_MSG_ECART_TEMPS_IMPORTANT_MS = 3500;
 
     protected Context contexte;
     public FragmentManager fragmentManager;
@@ -75,7 +88,7 @@ public class Config {
     public LocalisationGPS localisation;
     public Handler handlerMainThread;    // Hadler pour communiquer avec le thread principal
     public AccesService accesService;    // Accès au service d'arrière plan
-    public MainActivity mainActivity = null;   // Référence vers la MainActivity (l'activité du programme)
+    public MainActivity mainActivity;   // Référence vers la MainActivity (l'activité du programme)
     public Handler handler;   // Utilisé pour lancer des tâches différées
     public Handler handlerDiffusionPosition;  // Pour diffuser la position via internet
 
@@ -91,10 +104,6 @@ public class Config {
     public float orientationCarte = 0f;
     public MyLocationNewOverlay maPosition_LocationOverlay;  // Affichage de ma position
     public CompassOverlay mCompassOverlay = null;   // Compas en surimpression sur la carte
-
-    public final String NOM_FICHIERS_MARQUEURS = "marqueurs/map_marker_";
-    public final int NB_FICHIERS_MARQUEURS = 50;  // Nombre de fichiers de marqueur différents
-
 
 
     public RecyclerView recyclerViewPositions;  // RecyclerView affichant les différentes positions
@@ -116,9 +125,6 @@ public class Config {
 
     public int nbPositions = 0;    // Nombre de positions suivies
 
-    // Instance de la gestion des positions des utilisateurs
-    public GestionPositionsUtilisateurs positions;
-
     //TextView de l'interface
     public TextView textViewLocalisation = null;  // TextView où écrire la localisation
     public TextView textViewAltitude = null;      // TextView où écrire l'altitude
@@ -130,8 +136,8 @@ public class Config {
     public FloatingActionButton centrerSurMaPosition;  // Bouton flottant pour centrer sur ma position
     public FloatingActionButton fabInfo;
 
-    private SharedPreferences sharedPreferences;   // Stockage persistant pour les paramètres
-    private SharedPreferences.Editor editor;
+    private final SharedPreferences sharedPreferences;   // Stockage persistant pour les paramètres
+    private final SharedPreferences.Editor editor;
 
     public Config(MainActivity activite) {
         Position.cfg = this;
@@ -158,11 +164,11 @@ public class Config {
         port_serveur = sharedPreferences.getInt("portServeur", PORT_SERVEUR_PAR_DEFAUT);
         prefDiffuserEnFond = sharedPreferences.getBoolean("diffuserEnFond",PREF_DIFFUSER_EN_FOND_PAR_DEFAUT);
         intervalleEnvoiService = sharedPreferences.getLong("intervalleEnvoiEnFond", INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT);
-        centreCarte = new GeoPoint((double) sharedPreferences.getFloat("centreCarte_latitude",
+        centreCarte = new GeoPoint(sharedPreferences.getFloat("centreCarte_latitude",
                    maPosition == null ? LATITUDE_ORIGINE_PAR_DEFAUT: (float)maPosition.latitude),
-                (double) sharedPreferences.getFloat("centreCarte_longitude",
+                sharedPreferences.getFloat("centreCarte_longitude",
                    maPosition == null ? LONGITUDE_ORIGINE_PAR_DEFAUT: (float)maPosition.longitude));
-        niveauZoomCarte = (double) sharedPreferences.getFloat("niveauZoomCarte", (float)ZOOM_INITIAL_CARTE);
+        niveauZoomCarte = sharedPreferences.getFloat("niveauZoomCarte", (float)ZOOM_INITIAL_CARTE);
         orientationCarte = sharedPreferences.getFloat("orientationCarte", 0f);
     }
 
@@ -193,7 +199,7 @@ public class Config {
         sauvegardePreference("intervalleMesureSecondes", intervalleMesureSecondes);
         sauvegardePreference("intervalleMajSecondes", intervalleMajSecondes);
         sauvegardePreference("nomServeur", adresse_serveur);
-        sauvegardePreference("portServeur", (int)port_serveur);
+        sauvegardePreference("portServeur", port_serveur);
         sauvegardePreference("diffuserEnFond", prefDiffuserEnFond);
         sauvegardePreference("intervalleEnvoiEnFond", intervalleEnvoiService);
         sauvegardePreference("centreCarte_latitude", (float)centreCarte.getLatitude());

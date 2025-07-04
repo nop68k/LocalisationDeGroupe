@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,10 +22,10 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -33,10 +34,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -49,7 +48,6 @@ import java.util.Date;
 public class LocationUpdateService extends Service {
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
 
-    public final long INTERVALLE_MAJ_MINI = 3000;   // Temps mini entre 2 m.a.j. (en ms)
     public final long INTERVALLE_MAJ_MAX = 12*60*60*1000;   // Temps maxi entre 2 m.a.j. (en ms)
 
     private final String ID_CHANNEL_NOTIFICATION = "location_channel";  // Id du channel de notification
@@ -62,7 +60,6 @@ public class LocationUpdateService extends Service {
     public static final int MSG_MAJ_TEXTE_NOTIFICATION = 5;
 
     // Références vers les objets utilisées par le service
-    private NotificationManager mNotifManager;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private Context mContext;
@@ -92,7 +89,6 @@ public class LocationUpdateService extends Service {
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            Notification notification ;
             switch (msg.what) {
                 case MSG_PREMIERE_CONNEXION:
                     if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Connexion au service");
@@ -132,7 +128,7 @@ public class LocationUpdateService extends Service {
                     // TODO
                     break;
                 case 999:
-                    int mValue = msg.arg1;
+                    //utilisation d'arguments avec :  int mValue = msg.arg1;
                     break;
                 default:
                     super.handleMessage(msg);
@@ -207,7 +203,9 @@ public class LocationUpdateService extends Service {
                 || ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // On a eu une autorisation de localisation, maintenant on va demander à l'avoir en tâche de fond
             if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions((Activity) mContext, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 1);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ActivityCompat.requestPermissions((Activity) mContext, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 1);
+                }
             }
             if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return false;
@@ -272,7 +270,7 @@ public class LocationUpdateService extends Service {
 
         locationCallback = new LocationCallback() {
             @Override
-            public void onLocationResult(LocationResult locationResult) {
+            public void onLocationResult(@NonNull LocationResult locationResult) {
                 Location location = locationResult.getLastLocation();
                 if (location == null) {
                     if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("LocationUpdateService", "location == null à l'appel de 'onLocationResult'");
@@ -287,25 +285,25 @@ public class LocationUpdateService extends Service {
             public void envoiLocalisation(Position maPosition) {
                 // La création de socket doit se faire dans un autre Thread obligatoirement
                 Thread threadCommunication = new Thread(new Runnable() {
+                    @SuppressLint("SimpleDateFormat")
                     @Override
                     public void run() {
                         Socket socketClient = null;
                         PrintWriter out = null;
                         try {
                             //Création d'un socket
-                            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Création du socket sur " + adresseServeur + ":" + portServeur);
+                            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService",
+                                    "Création du socket sur " + adresseServeur + ":" + portServeur);
                             socketClient = new Socket(adresseServeur, portServeur);
-                            if (socketClient != null) {
-                                if (Config.DEBUG_LEVEL > 5 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Socket = " + socketClient);
-                                out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
-                                if (out != null) {
-                                    String msg = Communication.CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE + maPosition.toString();
-                                    if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Envoi de " + msg);
-                                    out.println(msg);
-                                    date_dernier_envoi = new SimpleDateFormat("EEE d MMM HH'h'mm").format(new Date());
-                                    majNotificationService();
-                                }
-                            }
+                            if (Config.DEBUG_LEVEL > 5 && DEBUG_CLASSE)
+                                Log.d("LocationUpdateService",
+                                    "Socket = " + socketClient);
+                            out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socketClient.getOutputStream())), true);
+                            String msg = Communication.CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE + maPosition.toString(false);
+                            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("LocationUpdateService", "Envoi de " + msg);
+                            out.println(msg);
+                            date_dernier_envoi = new SimpleDateFormat("EEE d MMM HH'h'mm").format(new Date());
+                            majNotificationService();  // Met à jour la notification avec la date du dernier envoi
                         } catch (Exception e) { //(IOException e)
                             Log.d("LocationUpdateService", "EXCEPTION : " + e);
                         } finally {
@@ -319,7 +317,6 @@ public class LocationUpdateService extends Service {
                                 } catch (IOException ex) {
                                     if (Config.DEBUG_LEVEL > 1 && DEBUG_CLASSE) Log.d("LocationUpdateService", "ERREUR de fermeture du socket");
                                 }
-                                return;
                             }
                         }
                     }
@@ -339,12 +336,6 @@ public class LocationUpdateService extends Service {
     public void onDestroy() {
         super.onDestroy();
         fusedLocationClient.removeLocationUpdates(locationCallback);
-    }
-
-
-    public void test(String msg) {
-        Log.d("LocationUpdateService", "Message : " + msg);
-        Log.d("LocationUpdateService", "cfg : " + cfg);
     }
 
     public void setCfg(Config cfg) {

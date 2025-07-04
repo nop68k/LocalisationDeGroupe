@@ -6,9 +6,11 @@ import android.view.View;
 import androidx.viewpager2.widget.ViewPager2;
 
 import org.patarasprod.localisationdegroupe.Config;
-import org.patarasprod.localisationdegroupe.MainActivity;
-import org.patarasprod.localisationdegroupe.MyAdapter;
 
+/**
+ * Classe gérant le changement d'onglet. Elle permet de changer le bouton en bas à gauche en
+ * fonction de l'objet sélectionné
+ */
 public class OnPageChangeCallback_ViewPager2 extends ViewPager2.OnPageChangeCallback {
 
     // Tableau donnant la visibilité du bouton permettant de centrer sur ma position en fonction du numéro de l'onglet

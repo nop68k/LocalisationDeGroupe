@@ -1,5 +1,6 @@
 package org.patarasprod.localisationdegroupe.views;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -7,6 +8,7 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.patarasprod.localisationdegroupe.Config;
@@ -30,6 +32,7 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             this.referenceVH = referenceVH;
         }
 
+        @NonNull
         @Override
         public ViewHolderListeUtilisateurs onCreateViewHolder(ViewGroup parent, int viewType) {
             // CREATE VIEW HOLDER AND INFLATING ITS XML LAYOUT
@@ -44,6 +47,7 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             viewHolder.remplisUtilisateur(this.listeUtilisateurs.get(positionDsListe), positionDsListe);
         }
 
+        @SuppressLint("NotifyDataSetChanged")
         public void majListeUtilisateurs() {
             listeUtilisateurs.clear();
             if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("RecyclerViewAdapter", "Liste vidée : " + listeUtilisateurs);

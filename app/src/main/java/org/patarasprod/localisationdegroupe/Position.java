@@ -2,6 +2,7 @@ package org.patarasprod.localisationdegroupe;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -10,6 +11,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.util.GeoPoint;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 
@@ -20,8 +22,10 @@ public class Position {
     public double longitude;
     public Instant dateMesure;   // Date où a été réalisée la mesure
 
-    //Config
-    static Config cfg = null;;
+    // Le champ cfg doit être statique car il est initialisé à la création de l'objet Config afin
+    // que tous les objets Position puissent l'utiliser
+    @SuppressLint("StaticFieldLeak")
+    static Config cfg = null;
 
     // Constantes
     private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
@@ -38,6 +42,7 @@ public class Position {
     private final String CHAMP_LATITUDE = "latitude";
     private final String CHAMP_LONGITUDE = "longitude";
     private final String CHAMP_DATE_MESURE = "date_mesure";
+
 
     public Position(String nom, double latitude, double longitude) {
         this.nom = nom;
@@ -157,16 +162,19 @@ public class Position {
      *  leurs valeurs (dans les bornes acceptables)
      **/
     public boolean estPositionValide() {
-        if (this.nom == null || this.nom.length() == 0 ||
+        if (this.nom == null || this.nom.isEmpty() ||
                 this.nom.length() > LIMITE_NOM_LONG) return false;
         if (this.latitude < -90 || this.latitude > 90) return false;
         if (this.longitude < -180 || this.longitude > 180) return false;
-        if (this.dateMesure == null || this.dateMesure.isBefore(Instant.EPOCH) ||
-                this.dateMesure.isAfter(Instant.now())) {
+        if (cfg == null || this.dateMesure.isBefore(Instant.EPOCH) ||
+                this.dateMesure.isAfter(Instant.now().minus(cfg.ecartTempsServeur).
+                        plus(Duration.ofMillis(Config.TOLERANCE_ECART_TEMPS_AVEC_SERVEUR_MS)))) {
             if (DEBUG_CLASSE) {
                 Log.v("Position", "Date d'une position invalide : " + this);
                 Log.v("Position", "isBefore(Instant.EPOCH) : " + this.dateMesure.isBefore(Instant.EPOCH));
                 Log.v("Position", "this.dateMesure.isAfter(Instant.now()) : " + this.dateMesure.isAfter(Instant.now()));
+                Log.v("Position", "Instant.now() = " + Instant.now());
+                if(cfg != null) Log.v("Position", "ecartTempsServeur = " + cfg.ecartTempsServeur);
             }
             return false;
         }
@@ -252,5 +260,21 @@ public class Position {
          + String.format(locale, FORMAT_AFFICHAGE_POSITION, this.longitude)
          + SEPARATEUR_CHAMPS
          + this.dateMesure.toString() ;
+    }
+
+    /**
+     * Version sans timestamp de toString : renvoie une chaîne avec juste le nom et la position
+     * @param timestamp boolean true si on veut tout de même le timestamp
+     * @return chaîne avec le nom, le séparateur , les coordonnées GPS et éventuellement le timestamp
+     */
+    @NonNull
+    public String toString(boolean timestamp) {
+        if (timestamp) return this.toString();
+        Locale locale = new Locale("en", "UK");  // Pour avoir le point en séparateur décimal
+        return this.nom
+                + SEPARATEUR_CHAMPS
+                + String.format(locale, FORMAT_AFFICHAGE_POSITION, this.latitude)
+                + SEPARATEUR_LATITUDE_LONGITUDE
+                + String.format(locale, FORMAT_AFFICHAGE_POSITION, this.longitude);
     }
 }
