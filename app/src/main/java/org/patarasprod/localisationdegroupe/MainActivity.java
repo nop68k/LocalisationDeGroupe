@@ -1,25 +1,40 @@
 package org.patarasprod.localisationdegroupe;
 
+import static androidx.core.content.ContextCompat.startActivity;
+
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding;
 import org.patarasprod.localisationdegroupe.views.RecyclerViewAdapterListeUtilisateurs;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements Handler.Callback {
-    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     public static final int MSG_MAJ_VIEW = 1;   // Message pour mettre à jour la vue
+    public static final int MSG_MAJ_ANCIENNETES = 2;  // Pour mise à jour des anciennetés
+    public static final int CODE_REDEMANDE_PERMISSIONS_VIA_MENU = 25;  // Code de demande
 
     protected Config cfg;
     org.patarasprod.localisationdegroupe.databinding.ActivityMainBinding binding;
@@ -99,6 +114,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
             case R.id.item_menu_redemander_autorisations:
                 cfg.localisation.demandeAutorisationsLocalisation();
                 cfg.com.demandeAutorisationInternet();
+                cfg.accesService.demandeAutorisationNotification(true);
                 cfg.handler = new Handler();
                 cfg.handler.postDelayed(() -> cfg.localisation.getLocalisation(), 3000);
                 return true;
@@ -161,7 +177,11 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                             "Mise à jour de la vue demandée ... mais la vue est non visible");
                 }
                 break;
-
+            case MSG_MAJ_ANCIENNETES:
+                if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("mainActivity",
+                        "Mise à jour des anciennetés demandé");
+                ((RecyclerViewAdapterListeUtilisateurs) Objects.requireNonNull(cfg.recyclerViewPositions.getAdapter())).majTempsEcoule();
+                break;
             default:
                 if (Config.DEBUG_LEVEL > 0 && DEBUG_CLASSE) Log.d("mainActivity",
                         "Code message inconnu ! : " + msg.what);
@@ -183,6 +203,41 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
             cfg.handlerMainThread.sendMessage(msg);
         }
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("mainActivity",
+                "Résultat des demandes d'autorisation pour la requête " + requestCode + "\n" +
+                        Arrays.toString(permissions) + "\n" + Arrays.toString(grantResults));
+        if (requestCode == CODE_REDEMANDE_PERMISSIONS_VIA_MENU) {
+            List<String> deniedPermissions = new ArrayList<>();
+            // Vérifie et ajoute les permissions non accordées à la liste
+            for (int i = 0; i < permissions.length; i++) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    deniedPermissions.add(permissions[i]);
+                }
+            }
+            if (Config.DEBUG_LEVEL > 3 && DEBUG_CLASSE) Log.d("mainActivity",
+                    "Autorisations refusées : " + deniedPermissions);
+            if (deniedPermissions.isEmpty()) {
+                // Affiche un message pr dire que les autorisations sont toutes accordées
+                Toast.makeText(this, getString(R.string.toutes_autorisations_accordees), Toast.LENGTH_SHORT).show();
+            } else {
+                // On affiche les permission refusées dans un message éphémère
+                Toast.makeText(this, getString(R.string.liste_permissions_manquantes, deniedPermissions), Toast.LENGTH_LONG).show();
+
+                // Ouvre les paramètres pour que l'utilisateur accorde les autorisations manquantes
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.fromParts("package", getPackageName(), null));
+                startActivity(intent);
+            }
+        }
+    }
+
 
     @Override
     public void onResume() {

@@ -1,22 +1,36 @@
 package org.patarasprod.localisationdegroupe;
 
+import static androidx.core.content.ContextCompat.startActivity;
 import static java.lang.Thread.sleep;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.util.Log;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Classe permettant d'interagir avec le service en arrière plan (classe LocationUpdateService)
@@ -24,7 +38,7 @@ import java.util.List;
  * ou sa notification
  */
 public class AccesService {
-
+    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
     private final Context mContext;
     ServiceConnection mConnection;
     protected Config cfg;  // Référence locale à la configuration du programme
@@ -34,13 +48,15 @@ public class AccesService {
     public AccesService(Config cfg, Context context) {
         this.cfg = cfg;
         this.mContext = context;
+        demandeAutorisationNotification(false);
+
 
         mConnection = new ServiceConnection() {
             public void onServiceConnected(ComponentName className,
                                            IBinder service) {
                 // Fonction appelée lorsque l'on s'est connecté au service en arrière plan
                 mService = new Messenger(service);
-                Log.d("AccesService", "Service connecté !");
+                if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 4) Log.d("AccesService", "Service connecté !");
                 mIsBound = true;   // Indique que la connexion au service est bien faite
 
                 // On envoi un message au service pour lui indiquer qu'on est connecté
@@ -57,10 +73,62 @@ public class AccesService {
             public void onServiceDisconnected(ComponentName className) {
                 // Appelée si le service a été déconnecté (crash du service par exemple)
                 mService = null;
-                Log.d("AccesService", "Service déconnecté !");
+                if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 4) Log.d("AccesService", "Service déconnecté !");
             }
         };
     }
+
+    /**
+     * Vérifie si l'autorisation d'afficher des autorisations (POST_NOTIFICATIONS) a bien été
+     * accordée à l'application et si ce n'est pas le cas la demande en affichant éventuellement
+     * un message pour expliquer pourquoi elle est utile au programme
+     *
+     * @param force_demande true si on demande l'autorisation sans se demander si on affiche le
+     *                      message d'explication
+     */
+    public void demandeAutorisationNotification(boolean force_demande) {
+        if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("AccesService",
+                "Demande autorisation Notification avec force_demande = " + force_demande );
+        if (ActivityCompat.checkSelfPermission(this.mContext, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED || (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)) {
+            // Si on a l'autorisation ou que cette autorisationn'existe pas ds cette version d'android
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("AccesService",
+                    "Autorisation Notification déja accordée !");
+            return;  // il n'y a rien à faire
+        }
+        // Préparation de la demande d'autorisation (si l'application n'a pas déjà démarré)
+        if (!force_demande) {
+            ActivityResultLauncher<String> requestPermissionLauncher = cfg.mainActivity.registerForActivityResult(new ActivityResultContracts.RequestPermission(), autorise -> {
+                if (!autorise) {
+                    // L'utilisateur n'a pas donné l'autorisation
+                    Snackbar.make(Objects.requireNonNull(cfg.mainActivity.binding.getRoot()),
+                            mContext.getString(R.string.msg_autorisation_notification_non_accordee),
+                            Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+                }
+            });
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    cfg.mainActivity, Manifest.permission.POST_NOTIFICATIONS)) {
+                // Si on a pas l'autorisation de notification, on affiche un message d'information
+                // avec un callback pour le bouton Ok qui lance la demande d'autorisation
+                AlertDialog.Builder builder = new AlertDialog.Builder(cfg.mainActivity.binding.getRoot().getContext());
+                builder.setTitle(mContext.getString(R.string.titre_requete_autorisation));
+                builder.setMessage(mContext.getString(R.string.msg_autorisation_notification_neccessaire));
+                builder.setCancelable(false);
+                builder.setPositiveButton("Ok", (dialogInterface, i) -> {
+                    dialogInterface.dismiss();
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                });
+                builder.show();
+            } else { // Sinon on demande directement l'autorisation
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        } else {
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("AccesService",
+                    "Requête d'autorisation Notification avec le code 25 effectuée");
+            ActivityCompat.requestPermissions(cfg.mainActivity, new String[]{Manifest.permission.POST_NOTIFICATIONS}, MainActivity.CODE_REDEMANDE_PERMISSIONS_VIA_MENU);
+        }
+    }
+
 
     /** Envoi un message au service LocationUpdateService en utilisant le code message
      *  fournit en argument
@@ -72,7 +140,8 @@ public class AccesService {
             //msg.replyTo = mMessenger;  // Si on veut une réponse
             if (mService != null)  mService.send(msg);
         } catch (RemoteException e) {
-            Log.d("AccesService", "Erreur dans l'envoi du message " + codeMsg);
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 0) Log.d("AccesService",
+                    "Erreur dans l'envoi du message " + codeMsg);
         }
     }
 
@@ -88,7 +157,8 @@ public class AccesService {
             //msg.replyTo = mMessenger;  // Si on veut une réponse
             mService.send(msg);
         } catch (RemoteException e) {
-            Log.d("AccesService", "Erreur dans l'envoi du message " + codeMsg);
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 0) Log.d("AccesService",
+                    "Erreur dans l'envoi du message " + codeMsg);
         }
     }
 
@@ -156,21 +226,22 @@ public class AccesService {
 
     public void demarrageService() {
         if (isMyServiceRunning(LocationUpdateService.class)) {  // On teste si le service ne fonctionne pas déjà
-            Log.d("AccesService", "*** Le service est déjà en cours d'exécution !");
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 1) Log.d("AccesService", "*** Le service est déjà en cours d'exécution !");
             connexionService();  // Dans ce cas on se contente de se reconnecter au service
         } else { // Sinon on le démarre
-            Log.d("AccesService", "Démarrage du service ...");
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("AccesService", "Démarrage du service ...");
             // D'abord on crée un intent
             Intent serviceIntent = new Intent(mContext, LocationUpdateService.class);
             // puis on prépare un bundle avec les données pour le serveur
             serviceIntent.putExtra("data", creationBundleParametresService(cfg));
-            ContextCompat.startForegroundService(mContext, serviceIntent);
+            mContext.startService(serviceIntent);
+
             connexionService();
         }
     }
 
     public void arreteService() {
-        Log.d("AccesService", "Arrêt du service ...");
+        if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("AccesService", "Arrêt du service ...");
         envoiMsgService(LocationUpdateService.MSG_ARRET_SERVICE);
         deconnexionService();
     }
@@ -180,7 +251,7 @@ public class AccesService {
      * @param config   Objet configuration contenant les paramètres à jour
      */
     public void majParametresService(Config config) {
-        Log.d("AccesService", "demande de maj avec mIsbound = " + mIsBound);
+        if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.d("AccesService", "demande de maj avec mIsbound = " + mIsBound);
         if (!mIsBound) return;   // Si pas de connexion au service, on ne fait rien
         if (config == null) config = cfg;
         Bundle bundle;

@@ -28,7 +28,7 @@ public class Position {
     static Config cfg = null;
 
     // Constantes
-    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
     final String FORMAT_AFFICHAGE_POSITION = "%.7f";
     public static final String SEPARATEUR_LATITUDE_LONGITUDE = ";";
     public static final String SEPARATEUR_CHAMPS = "|";
@@ -61,7 +61,7 @@ public class Position {
      * position 'invalide' est renvoyée
      */
     public Position(String chaine) {
-        if (Config.DEBUG_LEVEL > 3) Log.v("Position", "Création d'une position avec la chaîne : " + chaine);
+        if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.v("Position", "Création d'une position avec la chaîne : " + chaine);
         String chaine_originale = chaine;
         Position positionDecodee = new Position(NOM_INVALIDE, LATITUDE_INVALIDE, 0);
         try {

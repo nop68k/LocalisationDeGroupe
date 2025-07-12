@@ -76,4 +76,8 @@ public class ViewHolderListeUtilisateurs extends RecyclerView.ViewHolder impleme
         referenceVH.setReference(this);
     }
 
+    public TextView getTextViewAnciennete() {
+        return this.textViewAnciennete;
+    }
+
 }

@@ -224,6 +224,8 @@ public class LocationUpdateService extends Service {
                 .setContentText(getString(R.string.texte_notif_date_dernier_envoi) + " "+ date_dernier_envoi)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(contentIntent)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)  // Affichage immédiat de la notification
+                .setOngoing(true)   // Notification non-dissipable
                 .build();
         return notification;
     }

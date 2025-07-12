@@ -29,7 +29,7 @@ import java.time.Instant;
  * par le service).
  */
 public class Communication {
-
+    private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
     // Constantes pour la communication
     public static final String CARACTERE_COMMUNICATION_BIDIRECTIONNELLE = "%";
     public static final String CARACTERE_COMMUNICATION_UNIDIRECTIONNELLE = ">";
@@ -37,7 +37,7 @@ public class Communication {
 
     public static final String COMMANDE_SUPPRIMER = "SUPPR";  // Pour supprimer une position sur le serveur
     public static final String COMMANDE_SYNCHRONISER = "SYNC";  // Pour synchroniser l'heure avec le serveur
-    private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+
     Config cfg;
 
 

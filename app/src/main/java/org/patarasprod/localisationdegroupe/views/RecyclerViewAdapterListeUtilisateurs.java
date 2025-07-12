@@ -16,11 +16,13 @@ import org.patarasprod.localisationdegroupe.FragmentInfos;
 import org.patarasprod.localisationdegroupe.Position;
 import org.patarasprod.localisationdegroupe.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<ViewHolderListeUtilisateurs> {
-        private static final boolean DEBUG_CLASSE = false;  // Drapeau pour autoriser les message de debug dans la classe
-        private       List<Position>    listeUtilisateurs;
+        private static final boolean DEBUG_CLASSE = true;  // Drapeau pour autoriser les message de debug dans la classe
+        private       List<Position>    listeUtilisateurs;  // Liste des positions suivies
+        private       ArrayList<ViewHolderListeUtilisateurs> listeViewHolders;  // Liste des ViewHolders
         protected     MenuInflater      menuInflater;
         protected     Config            cfg;
         protected     FragmentInfos.PasseurDeReference referenceVH;       // Pour les menus contextuels
@@ -30,6 +32,7 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
             this.cfg = cfg;
             this.menuInflater = m;
             this.referenceVH = referenceVH;
+            listeViewHolders = new ArrayList<>();   // Liste des viewHolders en activité
         }
 
         @NonNull
@@ -44,7 +47,32 @@ public class RecyclerViewAdapterListeUtilisateurs extends RecyclerView.Adapter<V
 
         @Override
         public void onBindViewHolder(ViewHolderListeUtilisateurs viewHolder, int positionDsListe) {
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 1) Log.d("RecyclerViewAdapter",
+                    "onBind du ViewHolder " + viewHolder + " de " + this.listeUtilisateurs.get(positionDsListe).nom);
             viewHolder.remplisUtilisateur(this.listeUtilisateurs.get(positionDsListe), positionDsListe);
+            listeViewHolders.add(viewHolder);
+        }
+
+        public void onViewRecycled(@NonNull ViewHolderListeUtilisateurs viewHolder) {
+            if (!listeViewHolders.remove(viewHolder)) {
+                if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 1) Log.d("RecyclerViewAdapter",
+                        "Recyclage d'un ViewHolder inconnu : " + viewHolder);
+            }
+        }
+
+        /**
+        * Parcours la liste des viewHolders actifs et invalide leur TextView d'ancienneté de la mesure
+        */
+        public void majTempsEcoule() {
+            if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 3) Log.d("RecyclerViewAdapter",
+                    "Demande de maj des " + listeViewHolders.size() + " anciennetés de la liste" +
+                    " (sur " + cfg.gestionPositionsUtilisateurs.getListePositions().size() + ")");
+            // Met à jour les textes de chaque ViewHolder
+            for (int i = 0 ; i < listeViewHolders.size() ; i++) {
+                listeViewHolders.get(i).getTextViewAnciennete().setText(
+                        listeViewHolders.get(i).getPos().getAnciennete());
+                listeViewHolders.get(i).getTextViewAnciennete().getRootView().postInvalidate();
+            }
         }
 
         @SuppressLint("NotifyDataSetChanged")

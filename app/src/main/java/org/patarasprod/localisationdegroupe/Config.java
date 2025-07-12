@@ -38,7 +38,7 @@ public class Config {
     public static int DEBUG_LEVEL = 0; // Niveau d'expressivité des messages de debug (0 = aucun message)
 
     public static final String MESSAGE_INFORMATION = "Application de localisation de groupe\n" +
-            "Version 2.2.3\n(Juillet 2025)";
+            "Version 2.2.5\n(Juillet 2025)";
     public String reponseServeur;  // Enregistre la réponse du serveur à une commande
 
     // Ecart de temps entre l'heure locale et l'heure sur le serveur (Mis à jour par la commande
@@ -73,7 +73,7 @@ public class Config {
     public int port_serveur = PORT_SERVEUR_PAR_DEFAUT;
     private final boolean PREF_DIFFUSER_EN_FOND_PAR_DEFAUT = false;
     public boolean prefDiffuserEnFond = PREF_DIFFUSER_EN_FOND_PAR_DEFAUT;
-    private final long INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT = 300;
+    private final long INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT = 900;
     public long intervalleEnvoiService = INTERVALLE_ENVOI_EN_FOND_PAR_DEFAUT;
 
 

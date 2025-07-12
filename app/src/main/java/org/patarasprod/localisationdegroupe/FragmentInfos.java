@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
@@ -91,9 +92,14 @@ public class FragmentInfos extends Fragment {
         routineMAJ = () -> {
             // maj de l'UI si la view est bien visible
             if (mView != null && mView.isShown() && adapter != null) {
-                if (Config.DEBUG_LEVEL > 5) Log.v("infos", "Mise à jour de la View Infos demandée par routineMAJ");
-                adapter.majListeUtilisateurs();
-                ((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
+                if (DEBUG_CLASSE && Config.DEBUG_LEVEL > 5) Log.v("infos",
+                        "Mise à jour de la View Infos demandée par routineMAJ");
+                adapter.majTempsEcoule();
+
+                //Message msg = Message.obtain(cfg.handlerMainThread, MainActivity.MSG_MAJ_ANCIENNETES);
+                //cfg.handlerMainThread.sendMessage(msg);
+
+                //((MainActivity) requireActivity()).majUI(mView);  // Met à jour la vue
                 mHandler.postDelayed(routineMAJ, DELAI_MAJ_UI_LISTE);  // Reprogramme une maj
             }
         };
@@ -151,6 +157,10 @@ public class FragmentInfos extends Fragment {
             texte += "Intervalle maj position : " + cfg.intervalleMajSecondes + " s\n" + "\n";
             texte += "com : " + cfg.com + "\n";
             texte += "gestionPositionsUtilisateurs : " + cfg.gestionPositionsUtilisateurs + "\n";
+            texte += "Positions suivies (" + cfg.gestionPositionsUtilisateurs.getListePositions().size() + ") :\n";
+            for (int i = 0 ; i < cfg.gestionPositionsUtilisateurs.getListePositions().size() ; i++) {
+                texte += cfg.gestionPositionsUtilisateurs.getListePositions().get(i).toString(true) + "\n";
+            }
             texte += "localisation : " + cfg.localisation + "\n\n";
             texte += "diffuserMaPosition : " + cfg.diffuserMaPosition + "\n";
             texte += "communicationEnCours : " + cfg.communicationEnCours + "\n";
@@ -286,10 +296,13 @@ public class FragmentInfos extends Fragment {
         builder.setPositiveButton(R.string.dialog_OK, (dialogInterface, i) -> {
             // On tente la suppression et si elle réussit on affiche un message éphémère
             if (cfg != null && cfg.gestionPositionsUtilisateurs != null &&
-                    cfg.gestionPositionsUtilisateurs.supprimePosition(vh.getPos().nom))
+                    cfg.gestionPositionsUtilisateurs.supprimePosition(vh.getPos().nom)) {
+                if (cfg.recyclerViewPositions != null) ((RecyclerViewAdapterListeUtilisateurs)
+                        Objects.requireNonNull(cfg.recyclerViewPositions.getAdapter())).majListeUtilisateurs();
                 Snackbar.make(Objects.requireNonNull(getView()),
                         getString(R.string.msg_suppression_position_nom, vh.getPos().nom),
                         Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+            }
             // Si on a demandé la suppression sur le serveur, on la demande avec une commande
             if (case_a_cocher[0]) {   // Si la case est cochée
                 if (cfg != null) {                 // On demande au serveur de supprimer le nom

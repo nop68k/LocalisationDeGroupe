@@ -67,4 +67,9 @@
     <string name="msg_ecart_temps_important">Ecart important entre l\'horloge du serveur et l\'horloge locale. La précision du programme en sera impactée.</string>
     <string name="titre_ecart_temps_trop_grand">Problème avec la date et l\'heure</string>
     <string name="msg_ecart_temps_trop_grand">Il y a un trop grand écart (%1$d s) entre l\'horloge du serveur et l\'horloge locale. Le programme ne fonctionnera pas correctement tant que le problème ne sera pas réglé. Corrigez-le et demandez à nouveau une synchronisation de l\'heure via le menu.</string>
+    <string name="toutes_autorisations_accordees">Toutes les permission nécessaires sont accordées !</string>
+    <string name="liste_permissions_manquantes">Permissions manquantes : %1$s</string>
+    <string name="titre_requete_autorisation">Autorisation manquante</string>
+    <string name="msg_autorisation_notification_neccessaire">L\'autorisation de notification est nécessaire pour que la diffusion de la position en tâche de fond reste active sur la durée.</string>
+    <string name="msg_autorisation_notification_non_accordee">La diffusion de la position en fond ne fonctionnera pas correctement car pas de notifications</string>
 </resources>
